@@ -1,0 +1,20 @@
+# <type>: <subject>
+#
+# <body>
+#
+# Types:
+# feat: new feature
+# fix: bug fix
+# refactor: code restructuring
+# test: add/update tests
+# docs: documentation
+# chore: maintenance tasks
+# perf: performance improvements
+# build: build system changes
+#
+# Guidelines:
+# - Use present tense ("add" not "added")
+# - Keep subject under 50 characters
+# - Separate subject from body with blank line
+# - Wrap body at 72 characters
+# - Focus on what and why, not how
