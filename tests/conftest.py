@@ -1,8 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
+from typing import AsyncGenerator, Generator
 
 from api.main import create_app
+
+
 
 
 @pytest.fixture
@@ -12,13 +15,14 @@ def app():
 
 
 @pytest.fixture
-def client(app):
+def client(app) -> Generator[TestClient, None, None]:
     """Create a test client."""
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 @pytest.fixture
-async def async_client(app):
+async def async_client(app) -> AsyncGenerator[AsyncClient, None]:
     """Create an async test client."""
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
@@ -44,3 +48,5 @@ def mock_principal():
         roles=["admin"],
         email="test@example.com",
     )
+
+
