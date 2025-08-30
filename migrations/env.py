@@ -8,6 +8,7 @@ from api.config.settings import settings
 from api.infra.database import Base
 
 # Import all models to ensure they're registered with Base.metadata
+from api.v1.items import models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
