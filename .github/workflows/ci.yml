@@ -54,7 +54,7 @@ jobs:
     
     - name: Run database migrations
       run: |
-        uv run alembic upgrade head
+        uv run alembic -c alembic.ini upgrade head
       env:
         PYTHONPATH: .
         DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test
