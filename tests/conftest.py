@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from api.infra.database import Base, get_session
@@ -12,6 +12,7 @@ from api.main import create_app
 
 # Import models to ensure they're registered
 from api.v1.items import models  # noqa: F401
+from api.v1.review import models as review_models  # noqa: F401
 
 
 @pytest.fixture(scope="session")
@@ -56,13 +57,26 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
         await session.rollback()
 
 
-@pytest.fixture
-def app(db_session):
+@pytest.fixture  
+def app(db_session, sample_user, sample_org):
     """Create a test FastAPI application with test database."""
+    from api.v1.core.security import get_principal, Principal
+    
     app = create_app()
 
     # Override the database dependency
     app.dependency_overrides[get_session] = lambda: db_session
+    
+    # Override the principal dependency using actual test entities
+    def get_test_principal():
+        return Principal(
+            user_id=str(sample_user.id),
+            org_id=str(sample_org.id), 
+            roles=["admin"],
+            email=sample_user.email
+        )
+    
+    app.dependency_overrides[get_principal] = get_test_principal
 
     yield app
 
@@ -93,7 +107,8 @@ def simple_client(simple_app) -> Generator[TestClient, None, None]:
 @pytest.fixture
 async def async_client(app) -> AsyncGenerator[AsyncClient, None]:
     """Create an async test client."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
@@ -117,3 +132,50 @@ def mock_principal():
         roles=["admin"],
         email="test@example.com",
     )
+
+
+@pytest.fixture
+async def sample_org(db_session: AsyncSession):
+    """Create a sample organization for testing."""
+    from api.v1.items.models import Organization
+    
+    # Use fixed UUID that matches the principal override
+    org_id = "test_org_123"
+    
+    # Use a UUID-like string for the actual database
+    import uuid
+    org_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, org_id)
+    
+    org = Organization(
+        id=org_uuid,
+        name="Test Organization"
+    )
+    db_session.add(org)
+    await db_session.commit()
+    await db_session.refresh(org)
+    return org
+
+
+@pytest.fixture
+async def sample_user(db_session: AsyncSession, sample_org):
+    """Create a sample user for testing."""
+    from api.v1.items.models import User
+    import uuid
+    import random
+    
+    # Use fixed user ID that matches the principal override
+    user_id = "test_user_123"
+    user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, user_id)
+    
+    # Use unique email per test to avoid conflicts
+    unique_email = f"test_{random.randint(1000, 9999)}@example.com"
+    
+    user = User(
+        id=user_uuid,
+        email=unique_email,
+        org_id=sample_org.id
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
