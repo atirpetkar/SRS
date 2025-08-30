@@ -42,7 +42,7 @@ jobs:
     - name: Install dependencies
       run: |
         uv venv
-        uv pip install fastapi uvicorn[standard] sqlalchemy alembic psycopg[binary] psycopg2-binary structlog pydantic-settings pytest pytest-asyncio httpx ruff black
+        uv pip install fastapi uvicorn[standard] sqlalchemy alembic asyncpg structlog pydantic-settings pytest pytest-asyncio httpx ruff black
     
     - name: Lint with ruff
       run: |
@@ -57,6 +57,6 @@ jobs:
         uv run pytest tests/ -v
       env:
         PYTHONPATH: .
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+        DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test
         AUTH_MODE: none
         LOG_LEVEL: DEBUG
