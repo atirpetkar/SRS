@@ -1,11 +1,10 @@
+from collections.abc import AsyncGenerator, Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from typing import AsyncGenerator, Generator
 
 from api.main import create_app
-
-
 
 
 @pytest.fixture
