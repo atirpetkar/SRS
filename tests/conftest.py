@@ -47,5 +47,3 @@ def mock_principal():
         roles=["admin"],
         email="test@example.com",
     )
-
-
