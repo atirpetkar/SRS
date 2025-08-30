@@ -123,3 +123,45 @@ def test_registry_overwrites_implementation():
     registry.register("same_name", "second_value")
     assert registry.get("same_name") == "second_value"
     assert registry.list() == ["same_name"]  # Only one entry
+
+
+def test_registry_freezing():
+    """Test registry freezing functionality."""
+    registry = Registry[str]("Test")
+
+    # Initially not frozen
+    assert not registry.is_frozen()
+
+    # Can register when not frozen
+    registry.register("test", "value")
+    assert registry.get("test") == "value"
+
+    # Freeze registry
+    registry.freeze()
+    assert registry.is_frozen()
+
+    # Cannot register when frozen
+    with pytest.raises(
+        RuntimeError,
+        match="Cannot register 'new_test' in test registry: registry is frozen",
+    ):
+        registry.register("new_test", "new_value")
+
+    # Can still read from frozen registry
+    assert registry.get("test") == "value"
+    assert registry.list() == ["test"]
+
+
+def test_registry_freeze_prevents_overwrites():
+    """Test that freezing prevents overwriting existing implementations."""
+    registry = Registry[str]("Test")
+
+    registry.register("test", "original_value")
+    registry.freeze()
+
+    # Cannot overwrite existing implementation
+    with pytest.raises(RuntimeError, match="registry is frozen"):
+        registry.register("test", "new_value")
+
+    # Original value preserved
+    assert registry.get("test") == "original_value"

@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Literal
 
+from fastapi import Depends
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,7 +13,7 @@ class AuthMode(str, Enum):
 
 
 class SchedulerType(str, Enum):
-    FSRS_V7 = "fsrs_v7"
+    FSRS_LATEST = "fsrs_latest"
 
 
 class EmbeddingsType(str, Enum):
@@ -42,7 +43,7 @@ class Settings(BaseSettings):
 
     # Algorithms
     scheduler: SchedulerType = Field(
-        default=SchedulerType.FSRS_V7, description="SRS scheduler algorithm"
+        default=SchedulerType.FSRS_LATEST, description="SRS scheduler algorithm"
     )
     embeddings: EmbeddingsType = Field(
         default=EmbeddingsType.STUB, description="Embeddings provider"
@@ -69,6 +70,27 @@ class Settings(BaseSettings):
     )
     dev_org_id: str = Field(default="DEV_ORG", description="Default org ID in dev mode")
 
+    def model_post_init(self, __context) -> None:
+        """Validate settings after initialization."""
+        # Prevent dev auth modes in production
+        if self.environment == "production" and self.auth_mode in (
+            AuthMode.NONE,
+            AuthMode.DEV,
+        ):
+            raise ValueError(
+                f"AUTH_MODE={self.auth_mode.value} is not allowed in production environment. "
+                "Use AUTH_MODE=oidc for production deployments."
+            )
+
 
 # Global settings instance
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Dependency injection function for settings."""
+    return settings
+
+
+# Convenience type alias for dependency injection
+SettingsDep = Depends(get_settings)

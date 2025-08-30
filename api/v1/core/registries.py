@@ -10,9 +10,15 @@ class Registry(Generic[T]):
     def __init__(self, name: str):
         self.name = name
         self._implementations: dict[str, T] = {}
+        self._frozen = False
 
     def register(self, name: str, implementation: T) -> None:
         """Register an implementation with a given name."""
+        if self._frozen:
+            raise RuntimeError(
+                f"Cannot register '{name}' in {self.name.lower()} registry: "
+                "registry is frozen in production mode"
+            )
         self._implementations[name] = implementation
 
     def get(self, name: str) -> T:
@@ -26,6 +32,14 @@ class Registry(Generic[T]):
     def list(self) -> list[str]:
         """List all registered implementation names."""
         return list(self._implementations.keys())
+
+    def freeze(self) -> None:
+        """Freeze the registry to prevent further modifications."""
+        self._frozen = True
+
+    def is_frozen(self) -> bool:
+        """Check if the registry is frozen."""
+        return self._frozen
 
 
 # Item Type Registry - validates and renders item payloads

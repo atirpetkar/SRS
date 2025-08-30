@@ -10,6 +10,14 @@ from api.v1.core.exceptions import (
     http_exception_handler,
     learning_os_exception_handler,
 )
+from api.v1.core.registries import (
+    generator_registry,
+    grader_registry,
+    importer_registry,
+    item_type_registry,
+    scheduler_registry,
+    vectorizer_registry,
+)
 from api.v1.healthz import router as health_router
 
 
@@ -51,6 +59,15 @@ def create_app() -> FastAPI:
 
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])
+
+    # Freeze registries in non-development environments to prevent runtime modifications
+    if settings.environment != "development":
+        item_type_registry.freeze()
+        grader_registry.freeze()
+        scheduler_registry.freeze()
+        importer_registry.freeze()
+        generator_registry.freeze()
+        vectorizer_registry.freeze()
 
     return app
 

@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, Request, status
@@ -72,7 +73,7 @@ def create_error_response(
             "details": details or {},
         },
         "request_id": request_id,
-        "timestamp": None,  # Will be added by response middleware
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -85,7 +86,7 @@ def create_success_response(
         "data": data,
         "message": message,
         "request_id": request_id,
-        "timestamp": None,  # Will be added by response middleware
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 

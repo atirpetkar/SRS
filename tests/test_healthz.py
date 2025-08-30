@@ -24,9 +24,14 @@ def test_health_check_response_structure(client: TestClient):
     data = response.json()
 
     # Check response envelope structure
-    required_keys = ["ok", "data", "message", "request_id"]
+    required_keys = ["ok", "data", "message", "request_id", "timestamp"]
     for key in required_keys:
         assert key in data
+
+    # Check that timestamp is a valid ISO format
+    assert isinstance(data["timestamp"], str)
+    assert "T" in data["timestamp"]  # ISO format contains T
+    assert data["timestamp"].endswith("Z") or "+" in data["timestamp"]  # UTC timezone
 
     # Check that request ID is present in headers
     assert "X-Request-ID" in response.headers
