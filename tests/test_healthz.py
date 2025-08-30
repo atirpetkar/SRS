@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
 
-def test_health_check_success(client: TestClient):
+def test_health_check_success(simple_client: TestClient):
     """Test health check endpoint returns correct format."""
-    response = client.get("/v1/healthz")
+    response = simple_client.get("/v1/healthz")
 
     assert response.status_code == 200
 
@@ -17,9 +17,9 @@ def test_health_check_success(client: TestClient):
     assert health_data["environment"] == "development"
 
 
-def test_health_check_response_structure(client: TestClient):
+def test_health_check_response_structure(simple_client: TestClient):
     """Test health check response envelope structure."""
-    response = client.get("/v1/healthz")
+    response = simple_client.get("/v1/healthz")
 
     data = response.json()
 

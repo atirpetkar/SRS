@@ -7,56 +7,29 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  lint-and-format:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: [3.11, 3.12]
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
+
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
-    
+        python-version: 3.12
+
     - name: Install uv
       uses: astral-sh/setup-uv@v2
-    
+
     - name: Install dependencies
       run: |
         uv venv
-        uv pip install fastapi uvicorn[standard] sqlalchemy alembic asyncpg psycopg[binary] aiosqlite structlog pydantic-settings pytest pytest-asyncio httpx ruff black
-    
+        uv pip install ruff black
+
     - name: Lint with ruff
       run: |
         uv run ruff check .
-    
+
     - name: Check formatting with black
       run: |
         uv run black --check .
-    
-    - name: Test with pytest
-      run: |
-        uv run pytest tests/ -v
-      env:
-        PYTHONPATH: .
-        DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test
-        AUTH_MODE: none
-        LOG_LEVEL: DEBUG

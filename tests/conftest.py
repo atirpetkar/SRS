@@ -6,7 +6,6 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.pool import StaticPool
 
 from api.infra.database import Base, get_session
 from api.main import create_app
@@ -27,21 +26,21 @@ def event_loop():
 async def test_engine():
     """Create a test database engine."""
     database_url = os.getenv("DATABASE_URL")
-    
+
     if database_url and "postgresql" in database_url:
         # Use the CI PostgreSQL database
         engine = create_async_engine(database_url, echo=False)
-        
+
         # Create all tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        
+
         yield engine
-        
+
         # Clean up: drop all tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
-        
+
         await engine.dispose()
     else:
         # Skip database tests if no PostgreSQL available
@@ -61,20 +60,33 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
 def app(db_session):
     """Create a test FastAPI application with test database."""
     app = create_app()
-    
+
     # Override the database dependency
     app.dependency_overrides[get_session] = lambda: db_session
-    
+
     yield app
-    
+
     # Clean up
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def simple_app():
+    """Create a simple test FastAPI application without database dependencies."""
+    return create_app()
 
 
 @pytest.fixture
 def client(app) -> Generator[TestClient, None, None]:
     """Create a test client."""
     with TestClient(app) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def simple_client(simple_app) -> Generator[TestClient, None, None]:
+    """Create a simple test client without database dependencies."""
+    with TestClient(simple_app) as test_client:
         yield test_client
 
 
