@@ -42,7 +42,7 @@ jobs:
     - name: Install dependencies
       run: |
         uv venv
-        uv pip install fastapi uvicorn[standard] sqlalchemy alembic psycopg[binary] structlog pydantic-settings pytest pytest-asyncio httpx ruff black
+        uv pip install fastapi uvicorn[standard] sqlalchemy alembic psycopg[binary] psycopg2-binary structlog pydantic-settings pytest pytest-asyncio httpx ruff black
     
     - name: Lint with ruff
       run: |
