@@ -7,6 +7,9 @@ name = "learning-os"
 version = "1.0.0"
 description = "Content-agnostic practice loop with SRS scheduling"
 authors = [{name = "Learning OS", email = "dev@learning-os.com"}]
+
+[tool.hatch.build.targets.wheel]
+packages = ["api"]
 dependencies = [
     "fastapi>=0.116.0",
     "uvicorn[standard]>=0.35.0",
