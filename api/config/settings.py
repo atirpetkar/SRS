@@ -67,12 +67,18 @@ class Settings(BaseSettings):
     # Database
     database_url: str = Field(
         default="postgresql+asyncpg://postgres:password@localhost:5433/mydb",
-        description="Database connection URL"
+        description="Database connection URL",
     )
     db_pool_size: int = Field(default=10, description="Database connection pool size")
-    db_max_overflow: int = Field(default=20, description="Database max overflow connections")
-    db_pool_timeout: int = Field(default=30, description="Database pool timeout in seconds")
-    db_pool_recycle: int = Field(default=3600, description="Database connection recycle time in seconds")
+    db_max_overflow: int = Field(
+        default=20, description="Database max overflow connections"
+    )
+    db_pool_timeout: int = Field(
+        default=30, description="Database pool timeout in seconds"
+    )
+    db_pool_recycle: int = Field(
+        default=3600, description="Database connection recycle time in seconds"
+    )
 
     # Development defaults
     dev_user_id: str = Field(

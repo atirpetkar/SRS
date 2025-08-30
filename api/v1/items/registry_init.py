@@ -1,10 +1,15 @@
-"""Initialize item type validators in the registry."""
+"""Initialize item type validators and importers in registries."""
 
-from api.v1.core.registries import item_type_registry
+from api.v1.core.registries import importer_registry, item_type_registry
+from api.v1.items.importers import (
+    CSVImporter,
+    JSONImporter,
+    MarkdownImporter,
+)
 from api.v1.items.validators import (
+    ClozeValidator,
     FlashcardValidator,
     MCQValidator,
-    ClozeValidator,
     ShortAnswerValidator,
 )
 
@@ -15,3 +20,10 @@ def register_item_validators():
     item_type_registry.register("mcq", MCQValidator())
     item_type_registry.register("cloze", ClozeValidator())
     item_type_registry.register("short_answer", ShortAnswerValidator())
+
+
+def register_importers():
+    """Register all importers with the ImporterRegistry."""
+    importer_registry.register("markdown", MarkdownImporter())
+    importer_registry.register("csv", CSVImporter())
+    importer_registry.register("json", JSONImporter())

@@ -19,7 +19,7 @@ from api.v1.core.registries import (
     vectorizer_registry,
 )
 from api.v1.healthz import router as health_router
-from api.v1.items.registry_init import register_item_validators
+from api.v1.items.registry_init import register_importers, register_item_validators
 from api.v1.items.routes import router as items_router
 
 
@@ -61,6 +61,7 @@ def create_app() -> FastAPI:
 
     # Register validators and other implementations
     register_item_validators()
+    register_importers()
 
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])

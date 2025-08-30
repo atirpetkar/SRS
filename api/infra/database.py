@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -9,6 +9,7 @@ from api.config.settings import Settings, get_settings
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
+
     pass
 
 
@@ -39,8 +40,12 @@ class Database:
 # Global database instance
 _database: Database | None = None
 
+# Module-level dependency instances to avoid B008 violations
+_get_settings_dep = Depends(get_settings)
+_get_database_dep = None  # Will be set after function definition
 
-def get_database(settings: Settings = Depends(get_settings)) -> Database:
+
+def get_database(settings: Settings = _get_settings_dep) -> Database:
     """Get or create the global database instance."""
     global _database
     if _database is None:
@@ -48,8 +53,12 @@ def get_database(settings: Settings = Depends(get_settings)) -> Database:
     return _database
 
 
+# Set the database dependency after function definition
+_get_database_dep = Depends(get_database)
+
+
 async def get_session(
-    database: Database = Depends(get_database),
+    database: Database = _get_database_dep,
 ) -> AsyncGenerator[AsyncSession, None]:
     """Dependency injection for database sessions."""
     async with database.SessionLocal() as session:
