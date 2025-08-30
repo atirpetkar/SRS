@@ -19,8 +19,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the database URL from our settings - use psycopg (sync) driver for migrations
-sync_database_url = settings.database_url.replace("+asyncpg", "+psycopg")
+# Set the database URL from our settings - psycopg supports both sync and async
+# For migrations, we use the sync version by removing the async part
+sync_database_url = settings.database_url.replace("+psycopg", "")
 config.set_main_option("sqlalchemy.url", sync_database_url)
 
 # add your model's MetaData object here
