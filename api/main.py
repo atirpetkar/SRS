@@ -19,6 +19,8 @@ from api.v1.core.registries import (
     vectorizer_registry,
 )
 from api.v1.healthz import router as health_router
+from api.v1.items.registry_init import register_item_validators
+from api.v1.items.routes import router as items_router
 
 
 def create_app() -> FastAPI:
@@ -57,8 +59,12 @@ def create_app() -> FastAPI:
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
 
+    # Register validators and other implementations
+    register_item_validators()
+
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])
+    app.include_router(items_router, prefix="/v1", tags=["items"])
 
     # Freeze registries in non-development environments to prevent runtime modifications
     if settings.environment != "development":
