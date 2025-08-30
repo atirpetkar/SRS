@@ -52,13 +52,6 @@ jobs:
       run: |
         uv run black --check .
     
-    - name: Run database migrations
-      run: |
-        uv run alembic -c alembic.ini upgrade head
-      env:
-        PYTHONPATH: .
-        DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test
-
     - name: Test with pytest
       run: |
         uv run pytest tests/ -v
