@@ -5,16 +5,17 @@ Run with: python demo_step1.py
 """
 
 import os
+
 from fastapi.testclient import TestClient
 
-from api.config.settings import Settings, AuthMode, SchedulerType
+from api.config.settings import AuthMode, Settings
 from api.main import app
 from api.v1.core.registries import (
-    item_type_registry,
-    grader_registry,
-    scheduler_registry,
-    importer_registry,
     generator_registry,
+    grader_registry,
+    importer_registry,
+    item_type_registry,
+    scheduler_registry,
     vectorizer_registry,
 )
 
@@ -64,7 +65,7 @@ def demo_registries():
         print(f"✅ {name}: {len(registry.list())} implementations registered")
 
     # Demonstrate freezing
-    print(f"\n🧊 Registry freezing demo:")
+    print("\n🧊 Registry freezing demo:")
     test_registry = item_type_registry
 
     if test_registry.is_frozen():
@@ -77,9 +78,9 @@ def demo_registries():
     else:
         print(f"✅ {test_registry.name} registry is not frozen (development mode)")
         test_registry.register("demo_item", "test_implementation")
-        print(f"✅ Successfully registered demo item")
+        print("✅ Successfully registered demo item")
         test_registry.freeze()
-        print(f"✅ Registry frozen manually")
+        print("✅ Registry frozen manually")
         try:
             test_registry.register("demo2", "test2")
         except RuntimeError as e:
@@ -100,11 +101,13 @@ def demo_api_endpoints():
     print(f"✅ Health check status: {response.status_code}")
 
     data = response.json()
-    print(f"✅ Response envelope structure:")
+    print("✅ Response envelope structure:")
     print(f"   - ok: {data['ok']}")
     print(f"   - data: {bool(data.get('data'))}")
     print(f"   - timestamp: {data['timestamp'][:19]}...")
-    print(f"   - request_id: {data['request_id'][:8] if data['request_id'] else 'None'}...")
+    print(
+        f"   - request_id: {data['request_id'][:8] if data['request_id'] else 'None'}..."
+    )
 
     # Check headers
     request_id = response.headers.get("X-Request-ID")
