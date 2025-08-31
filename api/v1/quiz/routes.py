@@ -202,13 +202,13 @@ async def submit_quiz_item(
     except KeyError:
         raise HTTPException(
             status_code=400, detail=f"No grader available for item type: {item.type}"
-        )
+        ) from None
 
     # Grade the response
     try:
         grading_result = grader.grade(item.payload, request.response)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Grading error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Grading error: {str(e)}") from e
 
     # Get total items count for this quiz
     total_items_query = select(QuizItem).where(QuizItem.quiz_id == request.quiz_id)
