@@ -21,6 +21,8 @@ from api.v1.core.registries import (
 from api.v1.healthz import router as health_router
 from api.v1.items.registry_init import register_importers, register_item_validators
 from api.v1.items.routes import router as items_router
+from api.v1.quiz.registry_init import init_quiz_registries
+from api.v1.quiz.routes import router as quiz_router
 from api.v1.review.registry_init import init_review_registries
 from api.v1.review.routes import router as review_router
 
@@ -65,10 +67,12 @@ def create_app() -> FastAPI:
     register_item_validators()
     register_importers()
     init_review_registries()
+    init_quiz_registries()
 
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])
     app.include_router(items_router, prefix="/v1", tags=["items"])
+    app.include_router(quiz_router, prefix="/v1", tags=["quiz"])
     app.include_router(review_router, prefix="/v1", tags=["review"])
 
     # Freeze registries in non-development environments to prevent runtime modifications

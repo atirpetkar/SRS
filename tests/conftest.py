@@ -4,14 +4,16 @@ from collections.abc import AsyncGenerator, Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import text
 
 from api.infra.database import Base, get_session
 from api.main import create_app
 
 # Import models to ensure they're registered
 from api.v1.items import models  # noqa: F401
+from api.v1.quiz import models as quiz_models  # noqa: F401
 from api.v1.review import models as review_models  # noqa: F401
 
 
@@ -38,10 +40,6 @@ async def test_engine():
 
         yield engine
 
-        # Clean up: drop all tables
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-
         await engine.dispose()
     else:
         # Skip database tests if no PostgreSQL available
@@ -53,29 +51,40 @@ async def db_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create a fresh database session for each test."""
     async with AsyncSession(test_engine, expire_on_commit=False) as session:
         yield session
-        # Rollback any changes after each test
+        # Clean up data after each test while preserving schema
         await session.rollback()
+        await session.execute(text("DELETE FROM results"))
+        await session.execute(text("DELETE FROM quiz_items"))
+        await session.execute(text("DELETE FROM quizzes"))
+        await session.execute(text("DELETE FROM reviews"))
+        await session.execute(text("DELETE FROM scheduler_state"))
+        await session.execute(text("DELETE FROM items"))
+        await session.execute(text("DELETE FROM users"))
+        await session.execute(text("DELETE FROM orgs"))
+        await session.execute(text("DELETE FROM sources"))
+        await session.execute(text("DELETE FROM media_assets"))
+        await session.commit()
 
 
-@pytest.fixture  
+@pytest.fixture
 def app(db_session, sample_user, sample_org):
     """Create a test FastAPI application with test database."""
-    from api.v1.core.security import get_principal, Principal
-    
+    from api.v1.core.security import Principal, get_principal
+
     app = create_app()
 
     # Override the database dependency
     app.dependency_overrides[get_session] = lambda: db_session
-    
+
     # Override the principal dependency using actual test entities
     def get_test_principal():
         return Principal(
             user_id=str(sample_user.id),
-            org_id=str(sample_org.id), 
+            org_id=str(sample_org.id),
             roles=["admin"],
-            email=sample_user.email
+            email=sample_user.email,
         )
-    
+
     app.dependency_overrides[get_principal] = get_test_principal
 
     yield app
@@ -138,18 +147,16 @@ def mock_principal():
 async def sample_org(db_session: AsyncSession):
     """Create a sample organization for testing."""
     from api.v1.items.models import Organization
-    
+
     # Use fixed UUID that matches the principal override
     org_id = "test_org_123"
-    
+
     # Use a UUID-like string for the actual database
     import uuid
+
     org_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, org_id)
-    
-    org = Organization(
-        id=org_uuid,
-        name="Test Organization"
-    )
+
+    org = Organization(id=org_uuid, name="Test Organization")
     db_session.add(org)
     await db_session.commit()
     await db_session.refresh(org)
@@ -159,22 +166,19 @@ async def sample_org(db_session: AsyncSession):
 @pytest.fixture
 async def sample_user(db_session: AsyncSession, sample_org):
     """Create a sample user for testing."""
-    from api.v1.items.models import User
-    import uuid
     import random
-    
+    import uuid
+
+    from api.v1.items.models import User
+
     # Use fixed user ID that matches the principal override
     user_id = "test_user_123"
     user_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, user_id)
-    
+
     # Use unique email per test to avoid conflicts
     unique_email = f"test_{random.randint(1000, 9999)}@example.com"
-    
-    user = User(
-        id=user_uuid,
-        email=unique_email,
-        org_id=sample_org.id
-    )
+
+    user = User(id=user_uuid, email=unique_email, org_id=sample_org.id)
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
