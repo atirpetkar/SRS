@@ -5,8 +5,8 @@ from collections.abc import AsyncGenerator, Generator
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from api.infra.database import Base, get_session
 from api.main import create_app

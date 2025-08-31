@@ -58,6 +58,12 @@ ignore = [
     "E501",  # line too long, handled by black
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# FastAPI routes: ignore Depends() and Query() in function defaults (standard pattern)
+"*/routes.py" = ["B008"]
+# SQLAlchemy models: ignore string-based relationship forward references (standard pattern)
+"*/models.py" = ["F821"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
