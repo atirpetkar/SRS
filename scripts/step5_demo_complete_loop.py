@@ -33,7 +33,7 @@ class PracticeLoopDemo:
 
     def print_section(self, title: str):
         """Print a formatted section header."""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"🎯 {title}")
         print("=" * 60)
 
@@ -320,7 +320,7 @@ HINT: Essential for life
 
                 grading = data["grading"]
                 print(
-                    f"   ✅ Item {submitted+1}: {item_type} - Correct: {grading['correct']}, Score: {grading.get('score', 'N/A')}"
+                    f"   ✅ Item {submitted + 1}: {item_type} - Correct: {grading['correct']}, Score: {grading.get('score', 'N/A')}"
                 )
                 submitted += 1
 

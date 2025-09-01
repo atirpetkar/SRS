@@ -7,6 +7,7 @@ name = "learning-os"
 version = "1.0.0"
 description = "Content-agnostic practice loop with SRS scheduling"
 authors = [{name = "Learning OS", email = "dev@learning-os.com"}]
+requires-python = ">=3.12"
 
 [project.scripts]
 learning-os = "cli.main:app"

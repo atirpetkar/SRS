@@ -1,6 +1,5 @@
 """Items Commands - Content management and browsing"""
 
-
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -31,30 +30,30 @@ def list_items(
 
     try:
         with LearningOSClient(base_url) as client:
-            print_info(f"Fetching items (limit: {limit}, type: {type or 'all'}, status: {status})")
+            print_info(
+                f"Fetching items (limit: {limit}, type: {type or 'all'}, status: {status})"
+            )
 
             items_data = client.list_items(
-                type=type,
-                tags=tags,
-                status=status,
-                limit=limit,
-                offset=offset
+                type=type, tags=tags, status=status, limit=limit, offset=offset
             )
 
             items = items_data.get("items", [])
             total = items_data.get("total", len(items))
 
             if not items:
-                console.print(Panel(
-                    "📭 [yellow]No items found![/yellow]\n\n"
-                    f"Filters applied:\n"
-                    f"• Type: {type or 'any'}\n"
-                    f"• Tags: {tags or 'any'}\n"
-                    f"• Status: {status}\n\n"
-                    "Try adjusting your filters or add some content!",
-                    title="Empty Results",
-                    border_style="yellow"
-                ))
+                console.print(
+                    Panel(
+                        "📭 [yellow]No items found![/yellow]\n\n"
+                        f"Filters applied:\n"
+                        f"• Type: {type or 'any'}\n"
+                        f"• Tags: {tags or 'any'}\n"
+                        f"• Status: {status}\n\n"
+                        "Try adjusting your filters or add some content!",
+                        title="Empty Results",
+                        border_style="yellow",
+                    )
+                )
                 return
 
             # Display items table
@@ -63,10 +62,14 @@ def list_items(
 
             # Show pagination info
             showing = min(len(items), limit)
-            console.print(f"\n📊 Showing [cyan]{showing}[/cyan] of [yellow]{total}[/yellow] items")
+            console.print(
+                f"\n📊 Showing [cyan]{showing}[/cyan] of [yellow]{total}[/yellow] items"
+            )
 
             if offset + limit < total:
-                console.print(f"💡 Use [cyan]--offset {offset + limit}[/cyan] to see more")
+                console.print(
+                    f"💡 Use [cyan]--offset {offset + limit}[/cyan] to see more"
+                )
 
     except LearningOSError as e:
         print_error(f"Failed to list items: {e}")
@@ -88,20 +91,20 @@ def show_item(
 
             # Display item metadata
             metadata_content = f"""
-🆔 [bold]ID:[/bold] [cyan]{item.get('id', 'unknown')}[/cyan]
-📝 [bold]Type:[/bold] [magenta]{item.get('type', 'unknown')}[/magenta]
-🏷️ [bold]Tags:[/bold] [green]{', '.join(item.get('tags', []))}[/green]
-📊 [bold]Difficulty:[/bold] [yellow]{item.get('difficulty', 'unknown')}[/yellow]
-📅 [bold]Created:[/bold] [blue]{item.get('created_at', 'unknown')}[/blue]
-👤 [bold]Author:[/bold] [purple]{item.get('created_by', 'unknown')}[/purple]
-✅ [bold]Status:[/bold] [{'green' if item.get('status') == 'published' else 'yellow'}]{item.get('status', 'unknown')}[/]
+🆔 [bold]ID:[/bold] [cyan]{item.get("id", "unknown")}[/cyan]
+📝 [bold]Type:[/bold] [magenta]{item.get("type", "unknown")}[/magenta]
+🏷️ [bold]Tags:[/bold] [green]{", ".join(item.get("tags", []))}[/green]
+📊 [bold]Difficulty:[/bold] [yellow]{item.get("difficulty", "unknown")}[/yellow]
+📅 [bold]Created:[/bold] [blue]{item.get("created_at", "unknown")}[/blue]
+👤 [bold]Author:[/bold] [purple]{item.get("created_by", "unknown")}[/purple]
+✅ [bold]Status:[/bold] [{"green" if item.get("status") == "published" else "yellow"}]{item.get("status", "unknown")}[/]
             """
 
-            console.print(Panel(
-                metadata_content.strip(),
-                title="Item Metadata",
-                border_style="blue"
-            ))
+            console.print(
+                Panel(
+                    metadata_content.strip(), title="Item Metadata", border_style="blue"
+                )
+            )
 
             # Display content based on type
             console.print("\n[bold blue]Content:[/bold blue]")
@@ -129,15 +132,17 @@ def search_items(
     tags: str | None = typer.Option(None, "--tags", help="Filter by tags"),
 ):
     """🔍 Search items by content (when search is implemented)"""
-    console.print(Panel(
-        f"🔍 [yellow]Search feature coming in Step 7![/yellow]\n\n"
-        f"Your query: [cyan]{query}[/cyan]\n"
-        f"For now, use [green]learning-os items list[/green] with filters:\n"
-        f"• --type {type or 'TYPE'}\n"
-        f"• --tags {tags or 'TAGS'}",
-        title="Search Not Yet Available",
-        border_style="yellow"
-    ))
+    console.print(
+        Panel(
+            f"🔍 [yellow]Search feature coming in Step 7![/yellow]\n\n"
+            f"Your query: [cyan]{query}[/cyan]\n"
+            f"For now, use [green]learning-os items list[/green] with filters:\n"
+            f"• --type {type or 'TYPE'}\n"
+            f"• --tags {tags or 'TAGS'}",
+            title="Search Not Yet Available",
+            border_style="yellow",
+        )
+    )
 
 
 @app.command("stats")
@@ -150,7 +155,9 @@ def show_stats():
             print_info("Fetching item statistics...")
 
             # Get items with different filters to build stats
-            all_items = client.list_items(limit=1000, status="published")  # Get more for stats
+            all_items = client.list_items(
+                limit=1000, status="published"
+            )  # Get more for stats
             draft_items = client.list_items(limit=1000, status="draft")
 
             published_items = all_items.get("items", [])
@@ -194,11 +201,11 @@ def show_stats():
 {_format_count_list(dict(sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:10]))}
             """
 
-            console.print(Panel(
-                stats_content.strip(),
-                title="Item Statistics",
-                border_style="green"
-            ))
+            console.print(
+                Panel(
+                    stats_content.strip(), title="Item Statistics", border_style="green"
+                )
+            )
 
     except LearningOSError as e:
         print_error(f"Failed to get statistics: {e}")

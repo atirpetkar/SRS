@@ -40,7 +40,7 @@ async def seed_demo_data():
                 dev_org = Organization(
                     id=dev_org_id,
                     name="Development Organization",
-                    meta={"created_by": "seed_script"}
+                    meta={"created_by": "seed_script"},
                 )
                 db.add(dev_org)
                 print("✅ Created development organization")
@@ -54,7 +54,7 @@ async def seed_demo_data():
                     id=dev_user_id,
                     org_id=dev_org_id,
                     email="dev@learning-os.com",
-                    meta={"created_by": "seed_script"}
+                    meta={"created_by": "seed_script"},
                 )
                 db.add(dev_user)
                 print("✅ Created development user")
@@ -82,8 +82,8 @@ async def seed_demo_data():
                         "front": "Ciao",
                         "back": "Hello (informal)",
                         "examples": ["Ciao Maria!", "Ciao, come stai?"],
-                        "pronunciation": "CHAH-oh"
-                    }
+                        "pronunciation": "CHAH-oh",
+                    },
                 },
                 {
                     "type": "flashcard",
@@ -93,8 +93,8 @@ async def seed_demo_data():
                         "front": "Buongiorno",
                         "back": "Good morning/Good day (formal)",
                         "examples": ["Buongiorno, signore!", "Buongiorno a tutti!"],
-                        "pronunciation": "bwohn-JOR-noh"
-                    }
+                        "pronunciation": "bwohn-JOR-noh",
+                    },
                 },
                 {
                     "type": "flashcard",
@@ -104,8 +104,8 @@ async def seed_demo_data():
                         "front": "Uno",
                         "back": "One",
                         "examples": ["Un gelato", "Una pizza"],
-                        "pronunciation": "OO-noh"
-                    }
+                        "pronunciation": "OO-noh",
+                    },
                 },
                 {
                     "type": "flashcard",
@@ -115,8 +115,8 @@ async def seed_demo_data():
                         "front": "Due",
                         "back": "Two",
                         "examples": ["Due caffè", "Due euro"],
-                        "pronunciation": "DOO-eh"
-                    }
+                        "pronunciation": "DOO-eh",
+                    },
                 },
                 {
                     "type": "flashcard",
@@ -126,9 +126,9 @@ async def seed_demo_data():
                         "front": "Io sono",
                         "back": "I am",
                         "examples": ["Io sono Mario", "Io sono italiana"],
-                        "hints": ["From the verb 'essere' (to be)"]
-                    }
-                }
+                        "hints": ["From the verb 'essere' (to be)"],
+                    },
+                },
             ]
 
             # Create sample MCQs
@@ -140,12 +140,32 @@ async def seed_demo_data():
                     "payload": {
                         "stem": "What is the SI unit of force?",
                         "options": [
-                            {"id": "A", "text": "Newton", "is_correct": True, "rationale": "The Newton (N) is the SI unit of force, defined as kg⋅m/s²."},
-                            {"id": "B", "text": "Joule", "is_correct": False, "rationale": "Joule is the unit of energy, not force."},
-                            {"id": "C", "text": "Watt", "is_correct": False, "rationale": "Watt is the unit of power, not force."},
-                            {"id": "D", "text": "Pascal", "is_correct": False, "rationale": "Pascal is the unit of pressure, not force."}
-                        ]
-                    }
+                            {
+                                "id": "A",
+                                "text": "Newton",
+                                "is_correct": True,
+                                "rationale": "The Newton (N) is the SI unit of force, defined as kg⋅m/s².",
+                            },
+                            {
+                                "id": "B",
+                                "text": "Joule",
+                                "is_correct": False,
+                                "rationale": "Joule is the unit of energy, not force.",
+                            },
+                            {
+                                "id": "C",
+                                "text": "Watt",
+                                "is_correct": False,
+                                "rationale": "Watt is the unit of power, not force.",
+                            },
+                            {
+                                "id": "D",
+                                "text": "Pascal",
+                                "is_correct": False,
+                                "rationale": "Pascal is the unit of pressure, not force.",
+                            },
+                        ],
+                    },
                 },
                 {
                     "type": "mcq",
@@ -154,12 +174,32 @@ async def seed_demo_data():
                     "payload": {
                         "stem": "If an object moves with constant velocity, what is its acceleration?",
                         "options": [
-                            {"id": "A", "text": "Zero", "is_correct": True, "rationale": "Constant velocity means no change in velocity, so acceleration = 0."},
-                            {"id": "B", "text": "Positive", "is_correct": False, "rationale": "Positive acceleration would mean increasing velocity."},
-                            {"id": "C", "text": "Negative", "is_correct": False, "rationale": "Negative acceleration would mean decreasing velocity."},
-                            {"id": "D", "text": "Cannot be determined", "is_correct": False, "rationale": "Constant velocity always means zero acceleration."}
-                        ]
-                    }
+                            {
+                                "id": "A",
+                                "text": "Zero",
+                                "is_correct": True,
+                                "rationale": "Constant velocity means no change in velocity, so acceleration = 0.",
+                            },
+                            {
+                                "id": "B",
+                                "text": "Positive",
+                                "is_correct": False,
+                                "rationale": "Positive acceleration would mean increasing velocity.",
+                            },
+                            {
+                                "id": "C",
+                                "text": "Negative",
+                                "is_correct": False,
+                                "rationale": "Negative acceleration would mean decreasing velocity.",
+                            },
+                            {
+                                "id": "D",
+                                "text": "Cannot be determined",
+                                "is_correct": False,
+                                "rationale": "Constant velocity always means zero acceleration.",
+                            },
+                        ],
+                    },
                 },
                 {
                     "type": "mcq",
@@ -168,13 +208,33 @@ async def seed_demo_data():
                     "payload": {
                         "stem": "Solve for x: 2x + 3 = 11",
                         "options": [
-                            {"id": "A", "text": "x = 4", "is_correct": True, "rationale": "2x = 11 - 3 = 8, so x = 4."},
-                            {"id": "B", "text": "x = 5", "is_correct": False, "rationale": "If x = 5, then 2(5) + 3 = 13, not 11."},
-                            {"id": "C", "text": "x = 3", "is_correct": False, "rationale": "If x = 3, then 2(3) + 3 = 9, not 11."},
-                            {"id": "D", "text": "x = 7", "is_correct": False, "rationale": "If x = 7, then 2(7) + 3 = 17, not 11."}
-                        ]
-                    }
-                }
+                            {
+                                "id": "A",
+                                "text": "x = 4",
+                                "is_correct": True,
+                                "rationale": "2x = 11 - 3 = 8, so x = 4.",
+                            },
+                            {
+                                "id": "B",
+                                "text": "x = 5",
+                                "is_correct": False,
+                                "rationale": "If x = 5, then 2(5) + 3 = 13, not 11.",
+                            },
+                            {
+                                "id": "C",
+                                "text": "x = 3",
+                                "is_correct": False,
+                                "rationale": "If x = 3, then 2(3) + 3 = 9, not 11.",
+                            },
+                            {
+                                "id": "D",
+                                "text": "x = 7",
+                                "is_correct": False,
+                                "rationale": "If x = 7, then 2(7) + 3 = 17, not 11.",
+                            },
+                        ],
+                    },
+                },
             ]
 
             # Create sample short answer questions
@@ -187,8 +247,8 @@ async def seed_demo_data():
                         "prompt": "What Python keyword is used to define a function?",
                         "expected": {"value": "def"},
                         "acceptable_patterns": ["^def$", "^DEF$"],
-                        "grading": {"method": "exact_match", "case_sensitive": False}
-                    }
+                        "grading": {"method": "exact_match", "case_sensitive": False},
+                    },
                 },
                 {
                     "type": "short_answer",
@@ -198,9 +258,9 @@ async def seed_demo_data():
                         "prompt": "What is the capital of France?",
                         "expected": {"value": "Paris"},
                         "acceptable_patterns": ["^Paris$", "^paris$"],
-                        "grading": {"method": "exact_match", "case_sensitive": False}
-                    }
-                }
+                        "grading": {"method": "exact_match", "case_sensitive": False},
+                    },
+                },
             ]
 
             # Create sample cloze questions
@@ -216,11 +276,11 @@ async def seed_demo_data():
                                 "id": 1,
                                 "answers": ["have been"],
                                 "alt_answers": ["have been"],
-                                "case_sensitive": False
+                                "case_sensitive": False,
                             }
                         ],
-                        "context_note": "Present perfect continuous tense"
-                    }
+                        "context_note": "Present perfect continuous tense",
+                    },
                 }
             ]
 
@@ -239,7 +299,7 @@ async def seed_demo_data():
                     payload=item_data["payload"],
                     content_hash=f"demo_hash_{len(created_items)}",
                     status="published",
-                    created_by="seed_script"
+                    created_by="seed_script",
                 )
                 db.add(item)
                 created_items.append(item)
@@ -258,13 +318,13 @@ async def seed_demo_data():
                     item_id=item.id,
                     stability=2.5 + i,  # Different stabilities
                     difficulty=0.5 + (i * 0.2),  # Different difficulties
-                    due_at=now - timedelta(hours=i+1),  # Overdue by different amounts
+                    due_at=now - timedelta(hours=i + 1),  # Overdue by different amounts
                     last_interval=1 + i,  # Different intervals
                     reps=2 + i,  # Different rep counts
                     lapses=0,
                     last_reviewed_at=now - timedelta(days=2),
                     scheduler_name="fsrs_v7",
-                    version=1
+                    version=1,
                 )
                 db.add(state)
 
@@ -276,18 +336,20 @@ async def seed_demo_data():
                     item_id=item.id,
                     stability=3.0 + i,
                     difficulty=0.3 + (i * 0.1),
-                    due_at=now + timedelta(days=1+i),  # Due in future
+                    due_at=now + timedelta(days=1 + i),  # Due in future
                     last_interval=2 + i,
                     reps=3 + i,
                     lapses=0,
                     last_reviewed_at=now - timedelta(hours=12),
                     scheduler_name="fsrs_v7",
-                    version=1
+                    version=1,
                 )
                 db.add(state)
 
             await db.flush()
-            print(f"✅ Created scheduler states for {len(due_items)} due items and {len(future_items)} future items")
+            print(
+                f"✅ Created scheduler states for {len(due_items)} due items and {len(future_items)} future items"
+            )
 
             # Remaining items are "new" (no scheduler state)
             new_items = created_items[6:]

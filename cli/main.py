@@ -1,6 +1,5 @@
 """Learning OS CLI - Main Entry Point"""
 
-
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -39,26 +38,30 @@ def status():
         with LearningOSClient(base_url) as client:
             health = client.health_check()
 
-            console.print(Panel(
-                f"🚀 [green]Connected Successfully![/green]\n\n"
-                f"• Version: [cyan]{health.get('version', 'unknown')}[/cyan]\n"
-                f"• Environment: [yellow]{health.get('environment', 'unknown')}[/yellow]\n"
-                f"• API URL: [blue]{base_url}[/blue]",
-                title="System Status",
-                border_style="green"
-            ))
+            console.print(
+                Panel(
+                    f"🚀 [green]Connected Successfully![/green]\n\n"
+                    f"• Version: [cyan]{health.get('version', 'unknown')}[/cyan]\n"
+                    f"• Environment: [yellow]{health.get('environment', 'unknown')}[/yellow]\n"
+                    f"• API URL: [blue]{base_url}[/blue]",
+                    title="System Status",
+                    border_style="green",
+                )
+            )
 
     except Exception as e:
         print_error(f"Failed to connect: {e}")
-        console.print(Panel(
-            f"🚫 [red]Connection Failed[/red]\n\n"
-            f"Make sure the Learning OS API is running at:\n"
-            f"[blue]{base_url}[/blue]\n\n"
-            f"You can update the API URL with:\n"
-            f"[cyan]learning-os config set api.base_url <url>[/cyan]",
-            title="Connection Error",
-            border_style="red"
-        ))
+        console.print(
+            Panel(
+                f"🚫 [red]Connection Failed[/red]\n\n"
+                f"Make sure the Learning OS API is running at:\n"
+                f"[blue]{base_url}[/blue]\n\n"
+                f"You can update the API URL with:\n"
+                f"[cyan]learning-os config set api.base_url <url>[/cyan]",
+                title="Connection Error",
+                border_style="red",
+            )
+        )
         raise typer.Exit(1) from None
 
 
@@ -67,35 +70,39 @@ def version():
     """📎 Show CLI version information"""
     from . import __version__
 
-    console.print(Panel(
-        f"🎓 [bold cyan]Learning OS CLI[/bold cyan]\n\n"
-        f"• Version: [green]{__version__}[/green]\n"
-        f"• Type: [yellow]Command Line Interface[/yellow]\n"
-        f"• Repository: [blue]Learning OS SRS[/blue]",
-        title="Version Info",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel(
+            f"🎓 [bold cyan]Learning OS CLI[/bold cyan]\n\n"
+            f"• Version: [green]{__version__}[/green]\n"
+            f"• Type: [yellow]Command Line Interface[/yellow]\n"
+            f"• Repository: [blue]Learning OS SRS[/blue]",
+            title="Version Info",
+            border_style="cyan",
+        )
+    )
 
 
 @app.command()
 def quickstart():
     """🚀 Quick start guide and setup"""
-    console.print(Panel(
-        "🎓 [bold cyan]Learning OS Quick Start[/bold cyan]\n\n"
-        "[bold]1. Check Status[/bold]\n"
-        "   [dim]learning-os status[/dim]\n\n"
-        "[bold]2. View Items[/bold]\n"
-        "   [dim]learning-os items list[/dim]\n\n"
-        "[bold]3. Check Review Queue[/bold]\n"
-        "   [dim]learning-os review queue[/dim]\n\n"
-        "[bold]4. Start Learning[/bold]\n"
-        "   [dim]learning-os quiz start --mode drill[/dim]\n\n"
-        "[bold]5. View Progress[/bold]\n"
-        "   [dim]learning-os progress overview[/dim]\n\n"
-        "[bold yellow]Tip:[/bold yellow] Use [cyan]--help[/cyan] with any command for more options!",
-        title="Quick Start Guide",
-        border_style="green"
-    ))
+    console.print(
+        Panel(
+            "🎓 [bold cyan]Learning OS Quick Start[/bold cyan]\n\n"
+            "[bold]1. Check Status[/bold]\n"
+            "   [dim]learning-os status[/dim]\n\n"
+            "[bold]2. View Items[/bold]\n"
+            "   [dim]learning-os items list[/dim]\n\n"
+            "[bold]3. Check Review Queue[/bold]\n"
+            "   [dim]learning-os review queue[/dim]\n\n"
+            "[bold]4. Start Learning[/bold]\n"
+            "   [dim]learning-os quiz start --mode drill[/dim]\n\n"
+            "[bold]5. View Progress[/bold]\n"
+            "   [dim]learning-os progress overview[/dim]\n\n"
+            "[bold yellow]Tip:[/bold yellow] Use [cyan]--help[/cyan] with any command for more options!",
+            title="Quick Start Guide",
+            border_style="green",
+        )
+    )
 
 
 @app.callback()
@@ -113,6 +120,7 @@ def main(
     """
     if version:
         from . import __version__
+
         console.print(f"Learning OS CLI v{__version__}")
         raise typer.Exit()
 

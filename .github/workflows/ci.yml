@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         uv venv
-        uv pip install ruff black
+        uv pip install -e .
 
     - name: Lint with ruff
       run: |

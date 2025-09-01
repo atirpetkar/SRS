@@ -125,11 +125,7 @@ def _show_progress_suggestions(progress_data: dict[str, Any]):
 
     if suggestions:
         content = "\\n".join([f"• {s}" for s in suggestions])
-        console.print(Panel(
-            content,
-            title="💡 Suggestions",
-            border_style="yellow"
-        ))
+        console.print(Panel(content, title="💡 Suggestions", border_style="yellow"))
 
 
 def _display_weak_areas_table(weak_areas: dict[str, Any], top: int):
@@ -146,44 +142,58 @@ def _display_weak_areas_table(weak_areas: dict[str, Any], top: int):
     for area in weak_areas.get("tags", [])[:top]:
         accuracy = area.get("accuracy", 0)
         attempts = area.get("attempts", 0)
-        priority = "🔥 High" if accuracy < 0.5 else ("⚡ Medium" if accuracy < 0.7 else "📝 Low")
+        priority = (
+            "🔥 High"
+            if accuracy < 0.5
+            else ("⚡ Medium" if accuracy < 0.7 else "📝 Low")
+        )
 
         table.add_row(
             area.get("tag", "Unknown"),
             "Tag",
             f"{accuracy:.1%}",
             str(attempts),
-            priority
+            priority,
         )
 
     # Add type-based weak areas
     for area in weak_areas.get("types", [])[:top]:
         accuracy = area.get("accuracy", 0)
         attempts = area.get("attempts", 0)
-        priority = "🔥 High" if accuracy < 0.5 else ("⚡ Medium" if accuracy < 0.7 else "📝 Low")
+        priority = (
+            "🔥 High"
+            if accuracy < 0.5
+            else ("⚡ Medium" if accuracy < 0.7 else "📝 Low")
+        )
 
         table.add_row(
             area.get("type", "Unknown"),
             "Type",
             f"{accuracy:.1%}",
             str(attempts),
-            priority
+            priority,
         )
 
     if not weak_areas.get("tags") and not weak_areas.get("types"):
-        console.print(Panel(
-            "🎉 [green]No weak areas detected![/green]\\n\\n"
-            "You're doing great across all content areas.",
-            title="Analysis Complete",
-            border_style="green"
-        ))
+        console.print(
+            Panel(
+                "🎉 [green]No weak areas detected![/green]\\n\\n"
+                "You're doing great across all content areas.",
+                title="Analysis Complete",
+                border_style="green",
+            )
+        )
     else:
         console.print(table)
 
         # Show action suggestions
         console.print("\\n💡 [bold yellow]Recommendations:[/bold yellow]")
-        console.print("• Use tags to focus practice: [cyan]learning-os review queue --tags <tag>[/cyan]")
-        console.print("• Target specific types: [cyan]learning-os quiz start --type <type>[/cyan]")
+        console.print(
+            "• Use tags to focus practice: [cyan]learning-os review queue --tags <tag>[/cyan]"
+        )
+        console.print(
+            "• Target specific types: [cyan]learning-os quiz start --type <type>[/cyan]"
+        )
 
 
 def _display_forecast_chart(forecast: dict[str, Any], days: int):
@@ -191,11 +201,13 @@ def _display_forecast_chart(forecast: dict[str, Any], days: int):
     forecast_days = forecast.get("by_day", [])
 
     if not forecast_days:
-        console.print(Panel(
-            "📅 No reviews scheduled for the forecast period.",
-            title="Forecast",
-            border_style="blue"
-        ))
+        console.print(
+            Panel(
+                "📅 No reviews scheduled for the forecast period.",
+                title="Forecast",
+                border_style="blue",
+            )
+        )
         return
 
     # Create forecast table
@@ -224,11 +236,7 @@ def _display_forecast_chart(forecast: dict[str, Any], days: int):
         else:
             workload_style = "[red]"
 
-        table.add_row(
-            date,
-            str(due_count),
-            f"{workload_style}{bar}[/] ({due_count})"
-        )
+        table.add_row(date, str(due_count), f"{workload_style}{bar}[/] ({due_count})")
 
     console.print(table)
 
@@ -243,10 +251,14 @@ def _display_forecast_chart(forecast: dict[str, Any], days: int):
     # Peak days
     peak_day = max(forecast_days, key=lambda x: x.get("due_count", 0))
     if peak_day.get("due_count", 0) > avg_per_day * 1.5:
-        console.print(f"• Peak day: [red]{peak_day.get('date')} ({peak_day.get('due_count')} reviews)[/red]")
+        console.print(
+            f"• Peak day: [red]{peak_day.get('date')} ({peak_day.get('due_count')} reviews)[/red]"
+        )
 
 
-def _display_detailed_stats(overview: dict[str, Any], weak_areas: dict[str, Any], forecast: dict[str, Any]):
+def _display_detailed_stats(
+    overview: dict[str, Any], weak_areas: dict[str, Any], forecast: dict[str, Any]
+):
     """Display comprehensive statistics dashboard"""
 
     # Main stats panel
@@ -259,22 +271,32 @@ def _display_detailed_stats(overview: dict[str, Any], weak_areas: dict[str, Any]
     performance_content = f"""
 📈 [bold blue]Performance Metrics[/bold blue]
 
-• Weekly accuracy: [{'green' if accuracy >= 0.8 else 'yellow' if accuracy >= 0.6 else 'red'}]{accuracy:.1%}[/]
+• Weekly accuracy: [{"green" if accuracy >= 0.8 else "yellow" if accuracy >= 0.6 else "red"}]{accuracy:.1%}[/]
 • Daily average: [cyan]{attempts / 7:.1f} reviews[/cyan]
-• Response time: [yellow]{overview.get('avg_latency_ms_7d', 0)}ms[/yellow]
+• Response time: [yellow]{overview.get("avg_latency_ms_7d", 0)}ms[/yellow]
     """
 
-    console.print(Panel(performance_content.strip(), title="Performance Analysis", border_style="blue"))
+    console.print(
+        Panel(
+            performance_content.strip(),
+            title="Performance Analysis",
+            border_style="blue",
+        )
+    )
 
     # Quick forecast summary
     forecast_days = forecast.get("by_day", [])
     if forecast_days:
         next_7_days = sum(day.get("due_count", 0) for day in forecast_days[:7])
-        console.print(f"\\n📅 Next 7 days: [yellow]{next_7_days}[/yellow] reviews scheduled")
+        console.print(
+            f"\\n📅 Next 7 days: [yellow]{next_7_days}[/yellow] reviews scheduled"
+        )
 
     # Areas for improvement
     tag_weak_areas = len(weak_areas.get("tags", []))
     type_weak_areas = len(weak_areas.get("types", []))
 
     if tag_weak_areas > 0 or type_weak_areas > 0:
-        console.print(f"🎯 Areas needing attention: [red]{tag_weak_areas}[/red] tags, [red]{type_weak_areas}[/red] types")
+        console.print(
+            f"🎯 Areas needing attention: [red]{tag_weak_areas}[/red] tags, [red]{type_weak_areas}[/red] types"
+        )

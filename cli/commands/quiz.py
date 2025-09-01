@@ -24,12 +24,18 @@ app = typer.Typer(name="quiz", help="Quiz session management commands")
 
 @app.command("start")
 def start_quiz(
-    mode: str = typer.Option("drill", "--mode", "-m", help="Quiz mode: review, drill, mock"),
+    mode: str = typer.Option(
+        "drill", "--mode", "-m", help="Quiz mode: review, drill, mock"
+    ),
     length: int = typer.Option(10, "--length", "-l", help="Number of questions"),
     tags: str | None = typer.Option(None, "--tags", "-t", help="Filter by tags"),
     type: str | None = typer.Option(None, "--type", help="Filter by item type"),
-    time_limit: int | None = typer.Option(None, "--time-limit", help="Time limit in minutes"),
-    interactive: bool = typer.Option(True, "--interactive/--non-interactive", help="Interactive mode"),
+    time_limit: int | None = typer.Option(
+        None, "--time-limit", help="Time limit in minutes"
+    ),
+    interactive: bool = typer.Option(
+        True, "--interactive/--non-interactive", help="Interactive mode"
+    ),
 ):
     """🎯 Start a new quiz session"""
     base_url = config.get("api.base_url")
@@ -42,7 +48,9 @@ def start_quiz(
 
     try:
         with LearningOSClient(base_url) as client:
-            print_info(f"Starting {mode} quiz (length: {length}, tags: {tags}, type: {type})")
+            print_info(
+                f"Starting {mode} quiz (length: {length}, tags: {tags}, type: {type})"
+            )
 
             # Start the quiz
             quiz_data = client.start_quiz(
@@ -50,22 +58,24 @@ def start_quiz(
                 tags=tags,
                 type=type,
                 length=length,
-                time_limit_s=time_limit * 60 if time_limit else None
+                time_limit_s=time_limit * 60 if time_limit else None,
             )
 
             quiz_id = quiz_data.get("quiz_id")
             items = quiz_data.get("items", [])
 
             if not items:
-                console.print(Panel(
-                    "❌ [red]No items found for quiz![/red]\n\n"
-                    f"Try adjusting your filters:\n"
-                    f"• Tags: {tags or 'none'}\n"
-                    f"• Type: {type or 'any'}\n"
-                    f"• Mode: {mode}",
-                    title="Quiz Creation Failed",
-                    border_style="red"
-                ))
+                console.print(
+                    Panel(
+                        "❌ [red]No items found for quiz![/red]\n\n"
+                        f"Try adjusting your filters:\n"
+                        f"• Tags: {tags or 'none'}\n"
+                        f"• Type: {type or 'any'}\n"
+                        f"• Mode: {mode}",
+                        title="Quiz Creation Failed",
+                        border_style="red",
+                    )
+                )
                 raise typer.Exit(1)
 
             print_success(f"Quiz started! ID: {quiz_id}")
@@ -75,7 +85,9 @@ def start_quiz(
                 _run_interactive_quiz(client, quiz_id, items, time_limit)
             else:
                 console.print(f"\n🎯 Quiz ID: [yellow]{quiz_id}[/yellow]")
-                console.print("Use [cyan]learning-os quiz submit[/cyan] to answer items individually")
+                console.print(
+                    "Use [cyan]learning-os quiz submit[/cyan] to answer items individually"
+                )
                 console.print("Use [cyan]learning-os quiz finish[/cyan] when complete")
 
     except LearningOSError as e:
@@ -97,9 +109,7 @@ def submit_answer(
             print_info(f"Submitting answer for item {item_id}")
 
             result = client.submit_quiz_answer(
-                quiz_id=quiz_id,
-                item_id=item_id,
-                response=answer
+                quiz_id=quiz_id, item_id=item_id, response=answer
             )
 
             correct = result.get("correct", False)
@@ -143,9 +153,16 @@ def finish_quiz(
 
 @app.command("practice")
 def practice_session(
-    tags: str | None = typer.Option(None, "--tags", "-t", help="Focus on specific tags"),
+    tags: str | None = typer.Option(
+        None, "--tags", "-t", help="Focus on specific tags"
+    ),
     type: str | None = typer.Option(None, "--type", help="Focus on specific item type"),
-    difficulty: str = typer.Option("mixed", "--difficulty", "-d", help="Difficulty level: easy, medium, hard, mixed"),
+    difficulty: str = typer.Option(
+        "mixed",
+        "--difficulty",
+        "-d",
+        help="Difficulty level: easy, medium, hard, mixed",
+    ),
     length: int = typer.Option(15, "--length", "-l", help="Number of questions"),
 ):
     """🚀 Quick practice session with smart item selection"""
@@ -153,22 +170,21 @@ def practice_session(
 
     try:
         with LearningOSClient(base_url) as client:
-            console.print(Panel(
-                f"🎯 [bold cyan]Practice Session[/bold cyan]\n\n"
-                f"• Questions: [yellow]{length}[/yellow]\n"
-                f"• Tags: [green]{tags or 'all'}[/green]\n"
-                f"• Type: [blue]{type or 'mixed'}[/blue]\n"
-                f"• Difficulty: [magenta]{difficulty}[/magenta]",
-                title="Starting Practice",
-                border_style="cyan"
-            ))
+            console.print(
+                Panel(
+                    f"🎯 [bold cyan]Practice Session[/bold cyan]\n\n"
+                    f"• Questions: [yellow]{length}[/yellow]\n"
+                    f"• Tags: [green]{tags or 'all'}[/green]\n"
+                    f"• Type: [blue]{type or 'mixed'}[/blue]\n"
+                    f"• Difficulty: [magenta]{difficulty}[/magenta]",
+                    title="Starting Practice",
+                    border_style="cyan",
+                )
+            )
 
             # Start a drill quiz
             quiz_data = client.start_quiz(
-                mode="drill",
-                tags=tags,
-                type=type,
-                length=length
+                mode="drill", tags=tags, type=type, length=length
             )
 
             quiz_id = quiz_data.get("quiz_id")
@@ -185,17 +201,24 @@ def practice_session(
         raise typer.Exit(1) from None
 
 
-def _run_interactive_quiz(client: LearningOSClient, quiz_id: str, items: list[dict[str, Any]], time_limit: int | None):
+def _run_interactive_quiz(
+    client: LearningOSClient,
+    quiz_id: str,
+    items: list[dict[str, Any]],
+    time_limit: int | None,
+):
     """Run an interactive quiz session"""
 
-    console.print(Panel(
-        f"🎯 [bold cyan]Interactive Quiz Session[/bold cyan]\n\n"
-        f"Questions: [yellow]{len(items)}[/yellow]\n"
-        f"Time limit: [magenta]{f'{time_limit} min' if time_limit else 'None'}[/magenta]\n\n"
-        f"Commands: [dim]'skip' to skip, 'quit' to exit early[/dim]",
-        title="Quiz Started",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel(
+            f"🎯 [bold cyan]Interactive Quiz Session[/bold cyan]\n\n"
+            f"Questions: [yellow]{len(items)}[/yellow]\n"
+            f"Time limit: [magenta]{f'{time_limit} min' if time_limit else 'None'}[/magenta]\n\n"
+            f"Commands: [dim]'skip' to skip, 'quit' to exit early[/dim]",
+            title="Quiz Started",
+            border_style="cyan",
+        )
+    )
 
     start_time = time.time()
     correct_count = 0
@@ -203,7 +226,7 @@ def _run_interactive_quiz(client: LearningOSClient, quiz_id: str, items: list[di
     skipped_count = 0
 
     for i, item in enumerate(items):
-        console.print(f"\n[bold blue]Question {i+1}/{len(items)}[/bold blue]")
+        console.print(f"\n[bold blue]Question {i + 1}/{len(items)}[/bold blue]")
         console.rule(style="blue")
 
         # Check time limit
@@ -215,7 +238,9 @@ def _run_interactive_quiz(client: LearningOSClient, quiz_id: str, items: list[di
                 console.print("[red]⏰ Time's up![/red]")
                 break
             elif remaining_min <= 2:
-                console.print(f"[yellow]⏰ {remaining_min:.1f} minutes remaining[/yellow]")
+                console.print(
+                    f"[yellow]⏰ {remaining_min:.1f} minutes remaining[/yellow]"
+                )
 
         # Display the question
         display_item_content(item)
@@ -225,7 +250,9 @@ def _run_interactive_quiz(client: LearningOSClient, quiz_id: str, items: list[di
         answer = _get_user_answer(item, item_type)
 
         if answer is None:  # User chose to quit
-            console.print(f"\n📊 Quiz ended early. Answered {answered_count} questions.")
+            console.print(
+                f"\n📊 Quiz ended early. Answered {answered_count} questions."
+            )
             break
         elif answer == "SKIP":
             skipped_count += 1
@@ -235,9 +262,7 @@ def _run_interactive_quiz(client: LearningOSClient, quiz_id: str, items: list[di
         # Submit the answer
         try:
             result = client.submit_quiz_answer(
-                quiz_id=quiz_id,
-                item_id=item["id"],
-                response=answer
+                quiz_id=quiz_id, item_id=item["id"], response=answer
             )
 
             answered_count += 1
@@ -265,7 +290,9 @@ def _run_interactive_quiz(client: LearningOSClient, quiz_id: str, items: list[di
     # Finish the quiz
     try:
         result = client.finish_quiz(quiz_id)
-        _display_quiz_results(result, answered_count, correct_count, skipped_count, start_time)
+        _display_quiz_results(
+            result, answered_count, correct_count, skipped_count, start_time
+        )
     except LearningOSError as e:
         print_error(f"Failed to finish quiz properly: {e}")
 
@@ -303,10 +330,7 @@ def _get_mcq_answer(item: dict[str, Any]) -> str | None:
         console.print(f"  {letter}) {option.get('text', '')}")
 
     if multiple_select:
-        response = Prompt.ask(
-            "\n🔤 Select multiple answers (e.g., 'A,C')",
-            default=""
-        )
+        response = Prompt.ask("\n🔤 Select multiple answers (e.g., 'A,C')", default="")
         if response.lower() in ["quit", "skip"]:
             return response.upper() if response.lower() == "skip" else None
         return response.upper()
@@ -314,7 +338,7 @@ def _get_mcq_answer(item: dict[str, Any]) -> str | None:
         response = Prompt.ask(
             f"\n🔤 Select your answer ({'/'.join(option_letters)})",
             choices=option_letters + ["quit", "skip"],
-            default=""
+            default="",
         )
         if response.lower() == "quit":
             return None
@@ -326,8 +350,7 @@ def _get_mcq_answer(item: dict[str, Any]) -> str | None:
 def _get_cloze_answer(item: dict[str, Any]) -> str | None:
     """Get cloze answer"""
     response = Prompt.ask(
-        "🔤 Fill in the blanks (separate multiple answers with commas)",
-        default=""
+        "🔤 Fill in the blanks (separate multiple answers with commas)", default=""
     )
 
     if response.lower() == "quit":
@@ -362,7 +385,7 @@ def _get_flashcard_answer(item: dict[str, Any]) -> str | None:
     response = Prompt.ask(
         "Rate your knowledge (1=Again, 2=Hard, 3=Good, 4=Easy)",
         choices=["1", "2", "3", "4", "quit", "skip"],
-        default="3"
+        default="3",
     )
 
     if response == "quit":
@@ -373,7 +396,13 @@ def _get_flashcard_answer(item: dict[str, Any]) -> str | None:
     return response
 
 
-def _display_quiz_results(result: dict[str, Any], answered: int = None, correct: float = None, skipped: int = None, start_time: float = None):
+def _display_quiz_results(
+    result: dict[str, Any],
+    answered: int = None,
+    correct: float = None,
+    skipped: int = None,
+    start_time: float = None,
+):
     """Display comprehensive quiz results"""
 
     score = result.get("score", 0)
@@ -390,9 +419,9 @@ def _display_quiz_results(result: dict[str, Any], answered: int = None, correct:
 
 • Questions answered: [cyan]{answered}[/cyan]
 • Questions skipped: [yellow]{skipped or 0}[/yellow]
-• Accuracy: [{'green' if accuracy >= 80 else 'yellow' if accuracy >= 60 else 'red'}]{accuracy:.1f}%[/]
-• Time taken: [magenta]{elapsed_time/60:.1f} minutes[/magenta]
-• Avg per question: [blue]{elapsed_time/answered:.1f}s[/blue] (answered only)
+• Accuracy: [{"green" if accuracy >= 80 else "yellow" if accuracy >= 60 else "red"}]{accuracy:.1f}%[/]
+• Time taken: [magenta]{elapsed_time / 60:.1f} minutes[/magenta]
+• Avg per question: [blue]{elapsed_time / answered:.1f}s[/blue] (answered only)
 """
 
     # Overall results
@@ -405,8 +434,6 @@ def _display_quiz_results(result: dict[str, Any], answered: int = None, correct:
 🎉 Great job on completing the quiz!
     """
 
-    console.print(Panel(
-        results_content.strip(),
-        title="Quiz Results",
-        border_style="green"
-    ))
+    console.print(
+        Panel(results_content.strip(), title="Quiz Results", border_style="green")
+    )

@@ -63,6 +63,7 @@ async def start_quiz(
 
     # Build base query for published items in user's org
     from api.v1.review.routes import string_to_uuid
+
     org_uuid = string_to_uuid(principal.org_id)
     user_uuid = string_to_uuid(principal.user_id)
     base_query = select(Item).where(
@@ -168,6 +169,7 @@ async def submit_quiz_item(
 
     # Convert principal IDs to UUIDs
     from api.v1.review.routes import string_to_uuid
+
     org_uuid = string_to_uuid(principal.org_id)
 
     # Validate quiz exists and belongs to user
@@ -246,6 +248,7 @@ async def finish_quiz(
 
     # Convert principal IDs to UUIDs
     from api.v1.review.routes import string_to_uuid
+
     org_uuid = string_to_uuid(principal.org_id)
 
     # Validate quiz exists and belongs to user

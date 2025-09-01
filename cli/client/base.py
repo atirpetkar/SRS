@@ -11,6 +11,7 @@ console = Console()
 
 class LearningOSError(Exception):
     """Base exception for Learning OS API errors"""
+
     pass
 
 
@@ -33,7 +34,9 @@ class APIClient:
             data = response.json()
         except Exception:
             console.print(f"[red]Failed to parse response: {response.text}[/red]")
-            raise LearningOSError(f"Invalid JSON response: {response.status_code}") from None
+            raise LearningOSError(
+                f"Invalid JSON response: {response.status_code}"
+            ) from None
 
         if response.status_code >= 400:
             error_msg = data.get("error", {}).get("message", "Unknown error")

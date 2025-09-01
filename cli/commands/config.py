@@ -1,6 +1,5 @@
 """Configuration Commands - CLI settings management"""
 
-
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -45,7 +44,9 @@ def set_config(
 
 @app.command("get")
 def get_config(
-    key: str | None = typer.Argument(None, help="Configuration key (optional - shows all if omitted)"),
+    key: str | None = typer.Argument(
+        None, help="Configuration key (optional - shows all if omitted)"
+    ),
 ):
     """📋 Get configuration value(s)"""
     try:
@@ -53,7 +54,9 @@ def get_config(
             value = config.get(key)
             if value is None:
                 console.print(f"[yellow]Key '{key}' not found[/yellow]")
-                console.print("Use [cyan]learning-os config show[/cyan] to see all available keys")
+                console.print(
+                    "Use [cyan]learning-os config show[/cyan] to see all available keys"
+                )
             else:
                 console.print(f"[cyan]{key}[/cyan] = [yellow]{value}[/yellow]")
         else:
@@ -68,12 +71,14 @@ def get_config(
 def show_all_config():
     """📊 Show all configuration settings"""
     try:
-        console.print(Panel(
-            "[bold cyan]Learning OS CLI Configuration[/bold cyan]\n\n"
-            "[dim]Configuration is stored in ~/.learning-os/config.yaml[/dim]",
-            title="Configuration",
-            border_style="blue"
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]Learning OS CLI Configuration[/bold cyan]\n\n"
+                "[dim]Configuration is stored in ~/.learning-os/config.yaml[/dim]",
+                title="Configuration",
+                border_style="blue",
+            )
+        )
 
         config_data = config.load_config()
         _display_config_section(config_data, "")
@@ -93,7 +98,9 @@ def reset_config():
     try:
         config.reset()
         print_success("Configuration reset to defaults")
-        console.print("💡 Use [cyan]learning-os config show[/cyan] to see current settings")
+        console.print(
+            "💡 Use [cyan]learning-os config show[/cyan] to see current settings"
+        )
 
     except Exception as e:
         print_error(f"Failed to reset configuration: {e}")
@@ -118,7 +125,7 @@ def edit_config():
             "code",  # VS Code
             "vim",
             "nano",
-            "notepad"  # Windows
+            "notepad",  # Windows
         ]
 
         for editor in editors:
@@ -175,4 +182,6 @@ def _display_config_section(data, prefix: str, indent: int = 0):
                 display_value = f"[yellow]{value}[/yellow]"
 
             console.print(f"{indent_str}[cyan]{key}[/cyan]: {display_value}")
-            console.print(f"{indent_str}[dim]  → set with: learning-os config set {full_key} <value>[/dim]")
+            console.print(
+                f"{indent_str}[dim]  → set with: learning-os config set {full_key} <value>[/dim]"
+            )

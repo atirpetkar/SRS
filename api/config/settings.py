@@ -80,11 +80,15 @@ class Settings(BaseSettings):
         default=3600, description="Database connection recycle time in seconds"
     )
 
-    # Development defaults  
+    # Development defaults
     dev_user_id: str = Field(
-        default="00000000-0000-0000-0000-000000000002", description="Default user ID in dev mode"
+        default="00000000-0000-0000-0000-000000000002",
+        description="Default user ID in dev mode",
     )
-    dev_org_id: str = Field(default="00000000-0000-0000-0000-000000000001", description="Default org ID in dev mode")
+    dev_org_id: str = Field(
+        default="00000000-0000-0000-0000-000000000001",
+        description="Default org ID in dev mode",
+    )
 
     def model_post_init(self, __context) -> None:
         """Validate settings after initialization."""

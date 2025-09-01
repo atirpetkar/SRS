@@ -50,7 +50,7 @@ def create_items_table(items: list[dict[str, Any]]) -> Table:
             item.get("type", ""),
             tags_str if tags_str else "—",
             item.get("difficulty", "—"),
-            preview
+            preview,
         )
 
     return table
@@ -74,18 +74,14 @@ def create_review_queue_table(queue_data: dict[str, Any]) -> Table:
             item.get("id", "")[:8],
             item.get("type", ""),
             item.get("due_at", "now"),
-            preview
+            preview,
         )
 
     # Add new items
     for item in queue_data.get("new", []):
         preview = _get_content_preview(item)
         table.add_row(
-            "🆕 New",
-            item.get("id", "")[:8],
-            item.get("type", ""),
-            "—",
-            preview
+            "🆕 New", item.get("id", "")[:8], item.get("type", ""), "—", preview
         )
 
     return table
@@ -96,12 +92,12 @@ def create_progress_panel(progress_data: dict[str, Any]) -> Panel:
     content = f"""
 📊 [bold blue]Learning Statistics[/bold blue]
 
-• Reviews (7 days): [green]{progress_data.get('attempts_7d', 0)}[/green]
-• Accuracy: [green]{progress_data.get('accuracy_7d', 0):.1%}[/green]
-• Avg Response Time: [yellow]{progress_data.get('avg_latency_ms_7d', 0)}ms[/yellow]
-• Current Streak: [cyan]{progress_data.get('streak_days', 0)} days[/cyan]
-• Total Items: [blue]{progress_data.get('total_items', 0)}[/blue]
-• Items Reviewed: [purple]{progress_data.get('reviewed_items', 0)}[/purple]
+• Reviews (7 days): [green]{progress_data.get("attempts_7d", 0)}[/green]
+• Accuracy: [green]{progress_data.get("accuracy_7d", 0):.1%}[/green]
+• Avg Response Time: [yellow]{progress_data.get("avg_latency_ms_7d", 0)}ms[/yellow]
+• Current Streak: [cyan]{progress_data.get("streak_days", 0)} days[/cyan]
+• Total Items: [blue]{progress_data.get("total_items", 0)}[/blue]
+• Items Reviewed: [purple]{progress_data.get("reviewed_items", 0)}[/purple]
 """
 
     return Panel(content, title="Progress Overview", border_style="green")
