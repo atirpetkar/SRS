@@ -5,14 +5,15 @@ Revises: 544554655cfb
 Create Date: 2025-09-01 01:44:24.345840
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '2865d07e2745'
-down_revision: str | Sequence[str] | None = '544554655cfb'
+revision: str = "2865d07e2745"
+down_revision: str | Sequence[str] | None = "544554655cfb"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -20,10 +21,13 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Upgrade schema."""
     # Add search_document column
-    op.add_column('items', sa.Column('search_document', sa.dialects.postgresql.TSVECTOR()))
+    op.add_column(
+        "items", sa.Column("search_document", sa.dialects.postgresql.TSVECTOR())
+    )
 
     # Create function to compute search document from item data
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION items_compute_search_document(
             item_type TEXT,
             payload JSONB,
@@ -80,10 +84,12 @@ def upgrade() -> None:
                 setweight(to_tsvector('english', item_type), 'C');
         END;
         $$ LANGUAGE plpgsql IMMUTABLE;
-    """)
+    """
+    )
 
     # Create trigger function to update search_document
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION items_update_search_document()
         RETURNS trigger AS $$
         BEGIN
@@ -91,31 +97,34 @@ def upgrade() -> None:
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-    """)
+    """
+    )
 
     # Create trigger
-    op.execute("""
+    op.execute(
+        """
         CREATE TRIGGER items_search_document_trigger
             BEFORE INSERT OR UPDATE OF type, payload, tags ON items
             FOR EACH ROW EXECUTE FUNCTION items_update_search_document();
-    """)
+    """
+    )
 
     # Note: Existing rows will get search_document populated when they're next updated
     # The trigger will handle this automatically
 
     # Create GIN index for efficient full-text search
     op.create_index(
-        'items_search_document_gin',
-        'items',
-        ['search_document'],
-        postgresql_using='gin'
+        "items_search_document_gin",
+        "items",
+        ["search_document"],
+        postgresql_using="gin",
     )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # Drop the GIN index
-    op.drop_index('items_search_document_gin', table_name='items')
+    op.drop_index("items_search_document_gin", table_name="items")
 
     # Drop trigger
     op.execute("DROP TRIGGER IF EXISTS items_search_document_trigger ON items;")
@@ -124,7 +133,9 @@ def downgrade() -> None:
     op.execute("DROP FUNCTION IF EXISTS items_update_search_document();")
 
     # Drop compute function
-    op.execute("DROP FUNCTION IF EXISTS items_compute_search_document(TEXT, JSONB, TEXT[]);")
+    op.execute(
+        "DROP FUNCTION IF EXISTS items_compute_search_document(TEXT, JSONB, TEXT[]);"
+    )
 
     # Drop the search_document column
-    op.drop_column('items', 'search_document')
+    op.drop_column("items", "search_document")

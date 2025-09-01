@@ -40,7 +40,9 @@ async def test_engine():
 
             # Create PostgreSQL functions and triggers needed for search functionality
             # This mirrors the migration but in a test-safe way
-            await conn.execute(text("""
+            await conn.execute(
+                text(
+                    """
                 CREATE OR REPLACE FUNCTION items_compute_search_document(
                     item_type TEXT,
                     payload JSONB,
@@ -97,9 +99,13 @@ async def test_engine():
                         setweight(to_tsvector('english', item_type), 'C');
                 END;
                 $$ LANGUAGE plpgsql IMMUTABLE;
-            """))
+            """
+                )
+            )
 
-            await conn.execute(text("""
+            await conn.execute(
+                text(
+                    """
                 CREATE OR REPLACE FUNCTION items_update_search_document()
                 RETURNS trigger AS $$
                 BEGIN
@@ -107,13 +113,19 @@ async def test_engine():
                     RETURN NEW;
                 END;
                 $$ LANGUAGE plpgsql;
-            """))
+            """
+                )
+            )
 
-            await conn.execute(text("""
+            await conn.execute(
+                text(
+                    """
                 CREATE TRIGGER items_search_document_trigger
                     BEFORE INSERT OR UPDATE OF type, payload, tags ON items
                     FOR EACH ROW EXECUTE FUNCTION items_update_search_document();
-            """))
+            """
+                )
+            )
 
         yield engine
 
