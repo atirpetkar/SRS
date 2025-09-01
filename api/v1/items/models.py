@@ -3,7 +3,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import JSON, CheckConstraint, ForeignKey, Index, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, TIMESTAMP
+from sqlalchemy.dialects.postgresql import ARRAY, TIMESTAMP, TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -135,6 +135,9 @@ class Item(Base, TimestampMixin):
     )
     created_by: Mapped[str | None] = mapped_column(Text)
 
+    # Generated column for full-text search (computed from payload, tags, type)
+    search_document: Mapped[str | None] = mapped_column(TSVECTOR)
+
     # Foreign keys
     org_id: Mapped[UUID] = mapped_column(PG_UUID, ForeignKey("orgs.id"), nullable=False)
     source_id: Mapped[UUID | None] = mapped_column(PG_UUID, ForeignKey("sources.id"))
@@ -151,6 +154,7 @@ class Item(Base, TimestampMixin):
             name="items_difficulty_check",
         ),
         Index("items_tags_gin", "tags", postgresql_using="gin"),
+        Index("items_search_document_gin", "search_document", postgresql_using="gin"),
         Index("items_org_type_idx", "org_id", "type"),
         Index("items_org_status_idx", "org_id", "status"),
         Index("items_content_hash_idx", "content_hash"),

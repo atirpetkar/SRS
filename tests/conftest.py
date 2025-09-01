@@ -37,6 +37,83 @@ async def test_engine():
         # Create all tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            
+            # Create PostgreSQL functions and triggers needed for search functionality
+            # This mirrors the migration but in a test-safe way
+            await conn.execute(text("""
+                CREATE OR REPLACE FUNCTION items_compute_search_document(
+                    item_type TEXT,
+                    payload JSONB,
+                    tags TEXT[]
+                ) RETURNS tsvector AS $$
+                DECLARE
+                    content_text TEXT := '';
+                    tag_text TEXT := '';
+                BEGIN
+                    -- Extract searchable text based on item type
+                    CASE item_type
+                        WHEN 'flashcard' THEN
+                            content_text := CONCAT_WS(' ',
+                                payload->>'front',
+                                payload->>'back',
+                                (SELECT string_agg(value::text, ' ') FROM jsonb_array_elements_text(payload->'examples')),
+                                (SELECT string_agg(value::text, ' ') FROM jsonb_array_elements_text(payload->'hints')),
+                                payload->>'pronunciation'
+                            );
+                        WHEN 'mcq' THEN
+                            content_text := CONCAT_WS(' ',
+                                payload->>'stem',
+                                (SELECT string_agg(value->>'text', ' ') FROM jsonb_array_elements(payload->'options') AS value),
+                                (SELECT string_agg(value->>'rationale', ' ')
+                                 FROM jsonb_array_elements(payload->'options') AS value
+                                 WHERE value->>'rationale' IS NOT NULL)
+                            );
+                        WHEN 'cloze' THEN
+                            content_text := CONCAT_WS(' ',
+                                payload->>'text',
+                                payload->>'context_note',
+                                (SELECT string_agg(answer, ' ')
+                                 FROM jsonb_array_elements(payload->'blanks') AS blank,
+                                      jsonb_array_elements_text(blank->'answers') AS answer)
+                            );
+                        WHEN 'short_answer' THEN
+                            content_text := CONCAT_WS(' ',
+                                payload->>'prompt',
+                                payload->'expected'->>'value',
+                                payload->'expected'->>'unit',
+                                (SELECT string_agg(value::text, ' ') FROM jsonb_array_elements_text(payload->'acceptable_patterns'))
+                            );
+                        ELSE
+                            content_text := payload::text;
+                    END CASE;
+                    
+                    -- Convert tags array to text
+                    tag_text := COALESCE(array_to_string(tags, ' '), '');
+                    
+                    -- Return weighted tsvector
+                    RETURN
+                        setweight(to_tsvector('english', COALESCE(content_text, '')), 'A') ||
+                        setweight(to_tsvector('english', tag_text), 'B') ||
+                        setweight(to_tsvector('english', item_type), 'C');
+                END;
+                $$ LANGUAGE plpgsql IMMUTABLE;
+            """))
+            
+            await conn.execute(text("""
+                CREATE OR REPLACE FUNCTION items_update_search_document()
+                RETURNS trigger AS $$
+                BEGIN
+                    NEW.search_document := items_compute_search_document(NEW.type, NEW.payload, NEW.tags);
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+            """))
+            
+            await conn.execute(text("""
+                CREATE TRIGGER items_search_document_trigger
+                    BEFORE INSERT OR UPDATE OF type, payload, tags ON items
+                    FOR EACH ROW EXECUTE FUNCTION items_update_search_document();
+            """))
 
         yield engine
 

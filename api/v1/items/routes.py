@@ -2,10 +2,11 @@ from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import and_, or_, select
+from sqlalchemy import Text, and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from api.config.settings import Settings, SettingsDep
 from api.infra.database import SessionDep
 from api.v1.core.registries import importer_registry, item_type_registry
 from api.v1.core.security import Principal, PrincipalDep
@@ -152,56 +153,109 @@ async def list_items(
     filters: ItemFilters = _item_filters_dep,
     principal: Principal = PrincipalDep,
     session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
 ):
-    """List items with filtering and pagination."""
+    """List items with filtering, search, and pagination."""
 
-    # Build the base query
-    query = select(Item).where(
-        and_(Item.org_id == string_to_uuid(principal.org_id), Item.deleted_at.is_(None))
-    )
+    # Determine search method based on environment
+    use_tsvector = settings.environment in ("production", "staging")
 
-    # Apply filters
-    conditions = []
+    # Base conditions that always apply
+    base_conditions = [
+        Item.org_id == string_to_uuid(principal.org_id),
+        Item.deleted_at.is_(None),
+    ]
+
+    # Additional filter conditions
+    filter_conditions = []
 
     if filters.type:
-        conditions.append(Item.type == filters.type)
+        filter_conditions.append(Item.type == filters.type)
 
     if filters.status:
-        conditions.append(Item.status == filters.status)
+        filter_conditions.append(Item.status == filters.status)
 
     if filters.difficulty:
-        conditions.append(Item.difficulty == filters.difficulty)
+        filter_conditions.append(Item.difficulty == filters.difficulty)
 
     if filters.source_id:
-        conditions.append(Item.source_id == filters.source_id)
+        filter_conditions.append(Item.source_id == filters.source_id)
 
     if filters.created_by:
-        conditions.append(Item.created_by == filters.created_by)
+        filter_conditions.append(Item.created_by == filters.created_by)
 
     if filters.tags:
         # Match items that have ANY of the specified tags
         tag_conditions = [Item.tags.contains([tag]) for tag in filters.tags]
-        conditions.append(or_(*tag_conditions))
+        filter_conditions.append(or_(*tag_conditions))
 
-    if conditions:
-        query = query.where(and_(*conditions))
+    # Combine all non-search conditions
+    all_conditions = base_conditions + filter_conditions
 
-    # Get total count for pagination
-    count_query = select(Item.id).where(query.whereclause)
+    # Build query based on search presence
+    if filters.q:
+        # Search is active - use environment-appropriate method
+        if use_tsvector:
+            # Production: Use tsvector with text ranking
+            search_condition = Item.search_document.op("@@")(
+                func.to_tsquery("english", filters.q)
+            )
+            all_conditions.append(search_condition)
+
+            # Add text rank for ordering
+            rank_expr = func.ts_rank_cd(
+                Item.search_document, func.to_tsquery("english", filters.q)
+            )
+            query = select(Item, rank_expr.label("search_rank")).where(
+                and_(*all_conditions)
+            )
+
+        else:
+            # Dev/Test: Use ILIKE fallback on canonical text
+            # We'll need to construct the canonical text in SQL or filter after fetch
+            # For now, let's use a simple ILIKE on the JSON payload as fallback
+            search_text = f"%{filters.q}%"
+            search_condition = or_(
+                func.cast(Item.payload, Text).ilike(search_text),
+                func.array_to_string(Item.tags, " ").ilike(search_text),
+                Item.type.ilike(search_text),
+            )
+            all_conditions.append(search_condition)
+            query = select(Item).where(and_(*all_conditions))
+    else:
+        # No search - standard filtering
+        query = select(Item).where(and_(*all_conditions))
+
+    # Get total count for pagination (without limit/offset)
+    if filters.q and use_tsvector:
+        # For search queries, need to count the search results
+        count_query = select(func.count()).select_from(query.subquery())
+    else:
+        count_query = select(func.count(Item.id)).where(and_(*all_conditions))
+
     count_result = await session.execute(count_query)
-    total = len(count_result.all())
+    total = count_result.scalar()
 
-    # Apply pagination and ordering
-    query = (
-        query.order_by(Item.created_at.desc())
-        .offset(filters.offset)
-        .limit(filters.limit)
-    )
+    # Apply ordering
+    if filters.q and use_tsvector:
+        # Order by text rank (descending) then recency (descending)
+        query = query.order_by(text("search_rank DESC"), Item.created_at.desc())
+    else:
+        # Standard recency ordering
+        query = query.order_by(Item.created_at.desc())
+
+    # Apply pagination
+    query = query.offset(filters.offset).limit(filters.limit)
     query = query.options(selectinload(Item.source))
 
     # Execute the query
     result = await session.execute(query)
-    items = result.scalars().all()
+
+    if filters.q and use_tsvector:
+        # Extract items from the tuple results (Item, search_rank)
+        items = [row[0] for row in result.all()]
+    else:
+        items = result.scalars().all()
 
     # Convert to response format
     item_responses = [ItemResponse.model_validate(item) for item in items]

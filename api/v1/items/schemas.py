@@ -115,6 +115,7 @@ class ItemList(BaseModel):
 class ItemFilters(BaseModel):
     """Schema for item filtering parameters."""
 
+    q: str | None = Field(default=None, description="Search query for full-text search")
     type: str | None = Field(default=None, description="Filter by item type")
     tags: list[str] | None = Field(
         default=None, description="Filter by tags (ANY match)"
@@ -127,6 +128,15 @@ class ItemFilters(BaseModel):
         default=50, ge=1, le=1000, description="Number of items to return"
     )
     offset: int = Field(default=0, ge=0, description="Number of items to skip")
+
+    @field_validator("q")
+    @classmethod
+    def validate_search_query(cls, v):
+        if v and isinstance(v, str):
+            # Clean up the search query
+            cleaned = v.strip()
+            return cleaned if cleaned else None
+        return v
 
     @field_validator("tags")
     @classmethod
