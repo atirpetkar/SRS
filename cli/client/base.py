@@ -1,7 +1,8 @@
 """Base HTTP Client for Learning OS API"""
 
+from typing import Any
+
 import httpx
-from typing import Dict, Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 
@@ -15,30 +16,30 @@ class LearningOSError(Exception):
 
 class APIClient:
     """HTTP client for Learning OS API"""
-    
+
     def __init__(self, base_url: str = "http://localhost:8000", timeout: int = 30):
         self.base_url = base_url.rstrip("/")
         self.client = httpx.Client(base_url=self.base_url, timeout=timeout)
-        
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.client.close()
-    
-    def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
+
+    def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """Handle API response and extract data"""
         try:
             data = response.json()
         except Exception:
             console.print(f"[red]Failed to parse response: {response.text}[/red]")
-            raise LearningOSError(f"Invalid JSON response: {response.status_code}")
-        
+            raise LearningOSError(f"Invalid JSON response: {response.status_code}") from None
+
         if response.status_code >= 400:
             error_msg = data.get("error", {}).get("message", "Unknown error")
             console.print(Panel(f"[red]{error_msg}[/red]", title="API Error"))
             raise LearningOSError(f"API Error {response.status_code}: {error_msg}")
-        
+
         # Handle envelope format (with "ok" field)
         if "ok" in data:
             if not data.get("ok", False):
@@ -46,24 +47,24 @@ class APIClient:
                 console.print(Panel(f"[red]{error_msg}[/red]", title="Request Failed"))
                 raise LearningOSError(error_msg)
             return data.get("data", {})
-        
+
         # Handle direct response format (no envelope)
         return data
-    
-    def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+
+    def get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make GET request"""
         try:
             response = self.client.get(f"/v1{path}", params=params)
             return self._handle_response(response)
         except httpx.RequestError as e:
             console.print(f"[red]Connection error: {e}[/red]")
-            raise LearningOSError(f"Connection failed: {e}")
-    
-    def post(self, path: str, json: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+            raise LearningOSError(f"Connection failed: {e}") from None
+
+    def post(self, path: str, json: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make POST request"""
         try:
             response = self.client.post(f"/v1{path}", json=json)
             return self._handle_response(response)
         except httpx.RequestError as e:
             console.print(f"[red]Connection error: {e}[/red]")
-            raise LearningOSError(f"Connection failed: {e}")
+            raise LearningOSError(f"Connection failed: {e}") from None

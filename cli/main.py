@@ -1,15 +1,16 @@
 """Learning OS CLI - Main Entry Point"""
 
+
 import typer
-from typing import Optional
 from rich.console import Console
 from rich.panel import Panel
 
-# Import command modules
-from .commands import review, quiz, progress, items, config
-from .utils.formatting import print_success, print_error, print_info
-from .utils.config_manager import config as config_manager
 from .client.endpoints import LearningOSClient
+
+# Import command modules
+from .commands import config, items, progress, quiz, review
+from .utils.config_manager import config as config_manager
+from .utils.formatting import print_error, print_info
 
 console = Console()
 
@@ -33,11 +34,11 @@ def status():
     """📊 Check system status and connectivity"""
     base_url = config_manager.get("api.base_url")
     print_info(f"Checking connection to: {base_url}")
-    
+
     try:
         with LearningOSClient(base_url) as client:
             health = client.health_check()
-            
+
             console.print(Panel(
                 f"🚀 [green]Connected Successfully![/green]\n\n"
                 f"• Version: [cyan]{health.get('version', 'unknown')}[/cyan]\n"
@@ -46,7 +47,7 @@ def status():
                 title="System Status",
                 border_style="green"
             ))
-            
+
     except Exception as e:
         print_error(f"Failed to connect: {e}")
         console.print(Panel(
@@ -58,14 +59,14 @@ def status():
             title="Connection Error",
             border_style="red"
         ))
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command()
 def version():
     """📎 Show CLI version information"""
     from . import __version__
-    
+
     console.print(Panel(
         f"🎓 [bold cyan]Learning OS CLI[/bold cyan]\n\n"
         f"• Version: [green]{__version__}[/green]\n"
@@ -80,18 +81,18 @@ def version():
 def quickstart():
     """🚀 Quick start guide and setup"""
     console.print(Panel(
-        f"🎓 [bold cyan]Learning OS Quick Start[/bold cyan]\n\n"
-        f"[bold]1. Check Status[/bold]\n"
-        f"   [dim]learning-os status[/dim]\n\n"
-        f"[bold]2. View Items[/bold]\n"
-        f"   [dim]learning-os items list[/dim]\n\n"
-        f"[bold]3. Check Review Queue[/bold]\n"
-        f"   [dim]learning-os review queue[/dim]\n\n"
-        f"[bold]4. Start Learning[/bold]\n"
-        f"   [dim]learning-os quiz start --mode drill[/dim]\n\n"
-        f"[bold]5. View Progress[/bold]\n"
-        f"   [dim]learning-os progress overview[/dim]\n\n"
-        f"[bold yellow]Tip:[/bold yellow] Use [cyan]--help[/cyan] with any command for more options!",
+        "🎓 [bold cyan]Learning OS Quick Start[/bold cyan]\n\n"
+        "[bold]1. Check Status[/bold]\n"
+        "   [dim]learning-os status[/dim]\n\n"
+        "[bold]2. View Items[/bold]\n"
+        "   [dim]learning-os items list[/dim]\n\n"
+        "[bold]3. Check Review Queue[/bold]\n"
+        "   [dim]learning-os review queue[/dim]\n\n"
+        "[bold]4. Start Learning[/bold]\n"
+        "   [dim]learning-os quiz start --mode drill[/dim]\n\n"
+        "[bold]5. View Progress[/bold]\n"
+        "   [dim]learning-os progress overview[/dim]\n\n"
+        "[bold yellow]Tip:[/bold yellow] Use [cyan]--help[/cyan] with any command for more options!",
         title="Quick Start Guide",
         border_style="green"
     ))
@@ -100,13 +101,13 @@ def quickstart():
 @app.callback()
 def main(
     ctx: typer.Context,
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         None, "--version", "-v", help="Show version and exit"
     ),
 ):
     """
     🎓 Learning OS CLI - Interactive Spaced Repetition System
-    
+
     A command-line interface for managing your learning through spaced repetition.
     Review items, take quizzes, track progress, and manage your knowledge base.
     """

@@ -3,7 +3,7 @@
 Demo Data Seeder - Populates the database with sample content for CLI testing
 
 This script creates:
-- Dev user and organization  
+- Dev user and organization
 - Sample flashcards and MCQs with various difficulties
 - Some items with scheduler state to test reviews
 - Mix of due and new items for a realistic demo
@@ -11,10 +11,10 @@ This script creates:
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from api.config.settings import settings
 from api.v1.items.models import Item, Organization, User
@@ -23,17 +23,17 @@ from api.v1.review.models import SchedulerState
 
 async def seed_demo_data():
     """Seed database with demo data for testing CLI"""
-    
+
     # Create async engine and session
     engine = create_async_engine(settings.database_url)
     async_session = async_sessionmaker(engine)
-    
+
     async with async_session() as db:
         try:
             # Create dev organization
             dev_org_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
             dev_user_id = uuid.UUID("00000000-0000-0000-0000-000000000002")
-            
+
             # Check if org already exists
             existing_org = await db.get(Organization, dev_org_id)
             if not existing_org:
@@ -46,8 +46,8 @@ async def seed_demo_data():
                 print("✅ Created development organization")
             else:
                 print("ℹ️ Development organization already exists")
-            
-            # Check if user already exists  
+
+            # Check if user already exists
             existing_user = await db.get(User, dev_user_id)
             if not existing_user:
                 dev_user = User(
@@ -60,9 +60,9 @@ async def seed_demo_data():
                 print("✅ Created development user")
             else:
                 print("ℹ️ Development user already exists")
-            
+
             await db.flush()
-            
+
             # Check if items already exist
             existing_items = await db.execute(
                 select(Item).where(Item.org_id == dev_org_id).limit(1)
@@ -71,7 +71,7 @@ async def seed_demo_data():
                 print("ℹ️ Demo items already exist, skipping creation")
                 await db.commit()
                 return
-            
+
             # Create sample flashcards
             flashcards = [
                 {
@@ -86,7 +86,7 @@ async def seed_demo_data():
                     }
                 },
                 {
-                    "type": "flashcard", 
+                    "type": "flashcard",
                     "tags": ["italian", "basics", "greetings"],
                     "difficulty": "intro",
                     "payload": {
@@ -99,7 +99,7 @@ async def seed_demo_data():
                 {
                     "type": "flashcard",
                     "tags": ["italian", "numbers"],
-                    "difficulty": "intro", 
+                    "difficulty": "intro",
                     "payload": {
                         "front": "Uno",
                         "back": "One",
@@ -113,7 +113,7 @@ async def seed_demo_data():
                     "difficulty": "intro",
                     "payload": {
                         "front": "Due",
-                        "back": "Two", 
+                        "back": "Two",
                         "examples": ["Due caffè", "Due euro"],
                         "pronunciation": "DOO-eh"
                     }
@@ -130,7 +130,7 @@ async def seed_demo_data():
                     }
                 }
             ]
-            
+
             # Create sample MCQs
             mcqs = [
                 {
@@ -176,7 +176,7 @@ async def seed_demo_data():
                     }
                 }
             ]
-            
+
             # Create sample short answer questions
             short_answers = [
                 {
@@ -193,7 +193,7 @@ async def seed_demo_data():
                 {
                     "type": "short_answer",
                     "tags": ["geography", "capitals"],
-                    "difficulty": "intro", 
+                    "difficulty": "intro",
                     "payload": {
                         "prompt": "What is the capital of France?",
                         "expected": {"value": "Paris"},
@@ -202,7 +202,7 @@ async def seed_demo_data():
                     }
                 }
             ]
-            
+
             # Create sample cloze questions
             cloze_questions = [
                 {
@@ -223,10 +223,10 @@ async def seed_demo_data():
                     }
                 }
             ]
-            
+
             # Combine all items
             all_items = flashcards + mcqs + short_answers + cloze_questions
-            
+
             # Create Item objects
             created_items = []
             for item_data in all_items:
@@ -243,13 +243,13 @@ async def seed_demo_data():
                 )
                 db.add(item)
                 created_items.append(item)
-            
+
             await db.flush()
             print(f"✅ Created {len(created_items)} demo items")
-            
+
             # Create some scheduler states (some items already studied)
             now = datetime.now(UTC)
-            
+
             # Make some items due for review
             due_items = created_items[:3]  # First 3 items are due
             for i, item in enumerate(due_items):
@@ -267,7 +267,7 @@ async def seed_demo_data():
                     version=1
                 )
                 db.add(state)
-            
+
             # Make some items not yet due (reviewed recently)
             future_items = created_items[3:6] if len(created_items) > 6 else []
             for i, item in enumerate(future_items):
@@ -275,35 +275,35 @@ async def seed_demo_data():
                     user_id=dev_user_id,
                     item_id=item.id,
                     stability=3.0 + i,
-                    difficulty=0.3 + (i * 0.1), 
+                    difficulty=0.3 + (i * 0.1),
                     due_at=now + timedelta(days=1+i),  # Due in future
                     last_interval=2 + i,
                     reps=3 + i,
                     lapses=0,
                     last_reviewed_at=now - timedelta(hours=12),
-                    scheduler_name="fsrs_v7", 
+                    scheduler_name="fsrs_v7",
                     version=1
                 )
                 db.add(state)
-            
+
             await db.flush()
             print(f"✅ Created scheduler states for {len(due_items)} due items and {len(future_items)} future items")
-            
+
             # Remaining items are "new" (no scheduler state)
             new_items = created_items[6:]
             print(f"ℹ️ {len(new_items)} items remain as 'new' (no scheduler state)")
-            
+
             await db.commit()
             print("🎉 Demo data seeded successfully!")
             print("\n📋 Summary:")
             print(f"   • Organization: {dev_org_id}")
-            print(f"   • User: {dev_user_id}") 
+            print(f"   • User: {dev_user_id}")
             print(f"   • Total items: {len(created_items)}")
             print(f"   • Due for review: {len(due_items)}")
             print(f"   • Scheduled for future: {len(future_items)}")
             print(f"   • New items: {len(new_items)}")
             print("\n🚀 Try: learning-os review queue")
-            
+
         except Exception as e:
             await db.rollback()
             print(f"❌ Error seeding data: {e}")
