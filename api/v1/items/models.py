@@ -145,6 +145,9 @@ class Item(Base, TimestampMixin):
     # Relationships
     organization: Mapped["Organization"] = relationship(back_populates="items")
     source: Mapped["Source | None"] = relationship(back_populates="items")
+    embedding: Mapped["ItemEmbedding | None"] = relationship(
+        "ItemEmbedding", back_populates="item", uselist=False, lazy="select"
+    )
 
     # Constraints
     __table_args__ = (

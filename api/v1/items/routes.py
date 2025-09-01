@@ -2,7 +2,7 @@ from typing import Any
 from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import Text, and_, func, or_, select, text
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,6 +24,8 @@ from api.v1.items.schemas import (
     ItemUpdate,
 )
 from api.v1.items.utils import content_hash
+from api.v1.search.embedding_service import EmbeddingService
+from api.v1.search.hybrid_search import HybridSearchService
 
 router = APIRouter()
 
@@ -155,107 +157,35 @@ async def list_items(
     session: AsyncSession = SessionDep,
     settings: Settings = SettingsDep,
 ):
-    """List items with filtering, search, and pagination."""
+    """List items with hybrid search, filtering, and pagination."""
 
-    # Determine search method based on environment
-    use_tsvector = settings.environment in ("production", "staging")
+    # Use hybrid search service for enhanced search capabilities
+    search_service = HybridSearchService(settings)
 
-    # Base conditions that always apply
-    base_conditions = [
-        Item.org_id == string_to_uuid(principal.org_id),
-        Item.deleted_at.is_(None),
-    ]
-
-    # Additional filter conditions
-    filter_conditions = []
-
+    # Convert filters to dict for search service
+    filter_dict = {}
     if filters.type:
-        filter_conditions.append(Item.type == filters.type)
-
+        filter_dict["type"] = filters.type
     if filters.status:
-        filter_conditions.append(Item.status == filters.status)
-
+        filter_dict["status"] = filters.status
     if filters.difficulty:
-        filter_conditions.append(Item.difficulty == filters.difficulty)
-
+        filter_dict["difficulty"] = filters.difficulty
     if filters.source_id:
-        filter_conditions.append(Item.source_id == filters.source_id)
-
+        filter_dict["source_id"] = filters.source_id
     if filters.created_by:
-        filter_conditions.append(Item.created_by == filters.created_by)
-
+        filter_dict["created_by"] = filters.created_by
     if filters.tags:
-        # Match items that have ANY of the specified tags
-        tag_conditions = [Item.tags.contains([tag]) for tag in filters.tags]
-        filter_conditions.append(or_(*tag_conditions))
+        filter_dict["tags"] = filters.tags
 
-    # Combine all non-search conditions
-    all_conditions = base_conditions + filter_conditions
-
-    # Build query based on search presence
-    if filters.q:
-        # Search is active - use environment-appropriate method
-        if use_tsvector:
-            # Production: Use tsvector with text ranking
-            search_condition = Item.search_document.op("@@")(
-                func.to_tsquery("english", filters.q)
-            )
-            all_conditions.append(search_condition)
-
-            # Add text rank for ordering
-            rank_expr = func.ts_rank_cd(
-                Item.search_document, func.to_tsquery("english", filters.q)
-            )
-            query = select(Item, rank_expr.label("search_rank")).where(
-                and_(*all_conditions)
-            )
-
-        else:
-            # Dev/Test: Use ILIKE fallback on canonical text
-            # We'll need to construct the canonical text in SQL or filter after fetch
-            # For now, let's use a simple ILIKE on the JSON payload as fallback
-            search_text = f"%{filters.q}%"
-            search_condition = or_(
-                func.cast(Item.payload, Text).ilike(search_text),
-                func.array_to_string(Item.tags, " ").ilike(search_text),
-                Item.type.ilike(search_text),
-            )
-            all_conditions.append(search_condition)
-            query = select(Item).where(and_(*all_conditions))
-    else:
-        # No search - standard filtering
-        query = select(Item).where(and_(*all_conditions))
-
-    # Get total count for pagination (without limit/offset)
-    if filters.q and use_tsvector:
-        # For search queries, need to count the search results
-        count_query = select(func.count()).select_from(query.subquery())
-    else:
-        count_query = select(func.count(Item.id)).where(and_(*all_conditions))
-
-    count_result = await session.execute(count_query)
-    total = count_result.scalar()
-
-    # Apply ordering
-    if filters.q and use_tsvector:
-        # Order by text rank (descending) then recency (descending)
-        query = query.order_by(text("search_rank DESC"), Item.created_at.desc())
-    else:
-        # Standard recency ordering
-        query = query.order_by(Item.created_at.desc())
-
-    # Apply pagination
-    query = query.offset(filters.offset).limit(filters.limit)
-    query = query.options(selectinload(Item.source))
-
-    # Execute the query
-    result = await session.execute(query)
-
-    if filters.q and use_tsvector:
-        # Extract items from the tuple results (Item, search_rank)
-        items = [row[0] for row in result.all()]
-    else:
-        items = result.scalars().all()
+    # Perform search
+    items, total = await search_service.search_items(
+        session=session,
+        org_id=string_to_uuid(principal.org_id),
+        query=filters.q,
+        filters=filter_dict,
+        limit=filters.limit,
+        offset=filters.offset,
+    )
 
     # Convert to response format
     item_responses = [ItemResponse.model_validate(item) for item in items]
@@ -277,6 +207,7 @@ async def import_items(
     import_request: ImportRequest,
     principal: Principal = PrincipalDep,
     session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
 ):
     """Import items from external content and stage them as drafts."""
 
@@ -357,6 +288,35 @@ async def import_items(
                     f"Potential duplicate detected for {parsed_item['type']} (existing ID: {existing_item.id})"
                 )
 
+            # Additional duplicate detection using embeddings (if available)
+            try:
+                embedding_service = EmbeddingService(settings)
+
+                # Create a temporary item object for duplicate detection
+                temp_item = Item(
+                    org_id=org_uuid,
+                    type=parsed_item["type"],
+                    payload=validated_payload,
+                    tags=parsed_item.get("tags", []),
+                )
+                temp_item.id = None  # Ensure it's not confused with existing item
+
+                # Check for semantic duplicates using embeddings
+                similar_items = await embedding_service.detect_duplicates(
+                    session, temp_item, threshold=0.90
+                )
+
+                for similar_item, similarity in similar_items:
+                    warnings.append(
+                        f"High similarity ({similarity:.2f}) detected with item {similar_item.id} "
+                        f"for {parsed_item['type']}"
+                    )
+
+            except Exception:
+                # Don't fail import if embedding-based duplicate detection fails
+                # This could happen if vectorizer is not available or other issues
+                pass
+
             # Create the item
             item = Item(
                 org_id=org_uuid,
@@ -430,6 +390,7 @@ async def approve_items(
     approval_request: ApprovalRequest,
     principal: Principal = PrincipalDep,
     session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
 ):
     """Approve staged items by changing their status to published."""
 
@@ -461,6 +422,15 @@ async def approve_items(
             # Approve the item
             item.status = "published"
             approved_ids.append(item_id)
+
+            # Compute embedding for newly published item
+            try:
+                embedding_service = EmbeddingService(settings)
+                await embedding_service.compute_embedding_for_item(session, item)
+            except Exception:
+                # Don't fail approval if embedding computation fails
+                # This ensures the core functionality works even if embeddings are unavailable
+                pass
 
         except Exception as e:
             failed_ids.append(item_id)
@@ -572,4 +542,87 @@ async def render_item(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"No validator found for item type: {item.type}",
+        ) from e
+
+
+@router.get("/items/{item_id}/similar", response_model=list[dict[str, Any]])
+async def find_similar_items(
+    item_id: UUID,
+    threshold: float = 0.85,
+    limit: int = 10,
+    principal: Principal = PrincipalDep,
+    session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
+):
+    """Find items similar to the given item using embeddings."""
+    item = await get_item_by_id(item_id, principal, session)
+
+    try:
+        search_service = HybridSearchService(settings)
+        similar_items = await search_service.find_similar_items(
+            session, item, threshold, limit
+        )
+
+        return [
+            {
+                "item": ItemResponse.model_validate(similar_item).model_dump(),
+                "similarity_score": float(similarity),
+            }
+            for similar_item, similarity in similar_items
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error finding similar items: {str(e)}",
+        ) from e
+
+
+@router.post("/items/{item_id}/compute-embedding", response_model=dict[str, Any])
+async def compute_item_embedding(
+    item_id: UUID,
+    force: bool = False,
+    principal: Principal = PrincipalDep,
+    session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
+):
+    """Manually compute embedding for a specific item."""
+    item = await get_item_by_id(item_id, principal, session)
+
+    try:
+        embedding_service = EmbeddingService(settings)
+        embedding = await embedding_service.compute_embedding_for_item(
+            session, item, force_recompute=force
+        )
+
+        return {
+            "item_id": str(embedding.item_id),
+            "model_version": embedding.model_version,
+            "embedding_dimension": len(embedding.embedding),
+            "created_at": embedding.created_at.isoformat(),
+            "metadata": embedding.meta,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error computing embedding: {str(e)}",
+        ) from e
+
+
+@router.get("/items/embedding-stats", response_model=dict[str, Any])
+async def get_embedding_stats(
+    principal: Principal = PrincipalDep,
+    session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
+):
+    """Get statistics about embeddings for the organization."""
+    try:
+        embedding_service = EmbeddingService(settings)
+        stats = await embedding_service.get_embedding_stats(
+            session, string_to_uuid(principal.org_id)
+        )
+        return stats
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting embedding stats: {str(e)}",
         ) from e

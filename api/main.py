@@ -26,6 +26,7 @@ from api.v1.quiz.registry_init import init_quiz_registries
 from api.v1.quiz.routes import router as quiz_router
 from api.v1.review.registry_init import init_review_registries
 from api.v1.review.routes import router as review_router
+from api.v1.search.registry_init import init_vectorizer_registry
 
 
 def create_app() -> FastAPI:
@@ -69,6 +70,7 @@ def create_app() -> FastAPI:
     register_importers()
     init_review_registries()
     init_quiz_registries()
+    init_vectorizer_registry()
 
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])
