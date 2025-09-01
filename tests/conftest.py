@@ -37,7 +37,7 @@ async def test_engine():
         # Create all tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            
+
             # Create PostgreSQL functions and triggers needed for search functionality
             # This mirrors the migration but in a test-safe way
             await conn.execute(text("""
@@ -86,10 +86,10 @@ async def test_engine():
                         ELSE
                             content_text := payload::text;
                     END CASE;
-                    
+
                     -- Convert tags array to text
                     tag_text := COALESCE(array_to_string(tags, ' '), '');
-                    
+
                     -- Return weighted tsvector
                     RETURN
                         setweight(to_tsvector('english', COALESCE(content_text, '')), 'A') ||
@@ -98,7 +98,7 @@ async def test_engine():
                 END;
                 $$ LANGUAGE plpgsql IMMUTABLE;
             """))
-            
+
             await conn.execute(text("""
                 CREATE OR REPLACE FUNCTION items_update_search_document()
                 RETURNS trigger AS $$
@@ -108,7 +108,7 @@ async def test_engine():
                 END;
                 $$ LANGUAGE plpgsql;
             """))
-            
+
             await conn.execute(text("""
                 CREATE TRIGGER items_search_document_trigger
                     BEFORE INSERT OR UPDATE OF type, payload, tags ON items
