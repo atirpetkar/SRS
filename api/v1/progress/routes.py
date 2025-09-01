@@ -110,7 +110,7 @@ async def get_progress_overview(
         )
         SELECT COUNT(*) as streak_days
         FROM streak_calc
-        WHERE expected_date = :today::date + INTERVAL '1 day' * rn
+        WHERE expected_date = CAST(:today AS date) + INTERVAL '1 day' * rn
     """
     )
 

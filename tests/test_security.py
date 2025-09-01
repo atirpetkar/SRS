@@ -13,8 +13,8 @@ async def test_get_principal_auth_mode_none():
         principal = await get_principal()
 
         assert isinstance(principal, Principal)
-        assert principal.user_id == "DEV_USER"
-        assert principal.org_id == "DEV_ORG"
+        assert principal.user_id == "00000000-0000-0000-0000-000000000002"
+        assert principal.org_id == "00000000-0000-0000-0000-000000000001"
         assert principal.roles == ["admin"]
         assert principal.email is None
 

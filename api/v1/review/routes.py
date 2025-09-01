@@ -3,6 +3,7 @@ Review API routes - FSRS scheduler and review queue endpoints.
 """
 
 from datetime import UTC, datetime
+from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, select, update
@@ -28,6 +29,11 @@ from api.v1.review.schemas import (
 router = APIRouter(prefix="/review", tags=["review"])
 
 
+def string_to_uuid(text: str) -> UUID:
+    """Convert a string to a deterministic UUID using namespace DNS."""
+    return uuid5(NAMESPACE_DNS, text)
+
+
 @router.get("/queue", response_model=dict)
 async def get_review_queue(
     limit: int = Query(20, ge=1, le=100),
@@ -44,10 +50,14 @@ async def get_review_queue(
     new_limit = int(limit * mix_new)
     due_limit = limit - new_limit
 
+    # Convert principal IDs to UUIDs
+    org_uuid = string_to_uuid(principal.org_id)
+    user_uuid = string_to_uuid(principal.user_id)
+
     # Base query for published items in the user's org
     base_query = (
         select(Item)
-        .where(and_(Item.org_id == principal.org_id, Item.status == "published"))
+        .where(and_(Item.org_id == org_uuid, Item.status == "published"))
         .options(selectinload(Item.organization))
     )
 
@@ -63,7 +73,7 @@ async def get_review_queue(
             SchedulerState,
             and_(
                 SchedulerState.item_id == Item.id,
-                SchedulerState.user_id == principal.user_id,
+                SchedulerState.user_id == user_uuid,
             ),
         )
         .where(SchedulerState.due_at <= now)
@@ -80,7 +90,7 @@ async def get_review_queue(
             SchedulerState,
             and_(
                 SchedulerState.item_id == Item.id,
-                SchedulerState.user_id == principal.user_id,
+                SchedulerState.user_id == user_uuid,
             ),
         )
         .where(SchedulerState.item_id.is_(None))
@@ -98,7 +108,7 @@ async def get_review_queue(
         states_query = select(SchedulerState).where(
             and_(
                 SchedulerState.item_id.in_(due_ids),
-                SchedulerState.user_id == principal.user_id,
+                SchedulerState.user_id == user_uuid,
             )
         )
         states_result = await db.execute(states_query)
@@ -143,11 +153,15 @@ async def record_review(
 ) -> ReviewRecordResponse:
     """Record a review and update scheduler state."""
 
+    # Convert principal IDs to UUIDs
+    org_uuid = string_to_uuid(principal.org_id)
+    user_uuid = string_to_uuid(principal.user_id)
+
     # Validate item exists and user has access
     item_query = select(Item).where(
         and_(
             Item.id == review_request.item_id,
-            Item.org_id == principal.org_id,
+            Item.org_id == org_uuid,
             Item.status == "published",
         )
     )
@@ -160,7 +174,7 @@ async def record_review(
     # Get or create scheduler state
     state_query = select(SchedulerState).where(
         and_(
-            SchedulerState.user_id == principal.user_id,
+            SchedulerState.user_id == user_uuid,
             SchedulerState.item_id == review_request.item_id,
         )
     )
@@ -172,7 +186,7 @@ async def record_review(
 
     if db_state is None:
         # New item - create initial state
-        fsrs_state = scheduler.seed(principal.user_id, str(review_request.item_id))
+        fsrs_state = scheduler.seed(str(user_uuid), str(review_request.item_id))
 
         # Update state with review
         updated_fsrs_state = scheduler.update(
@@ -184,7 +198,7 @@ async def record_review(
 
         # Create new scheduler state record
         new_state = SchedulerState(
-            user_id=principal.user_id,
+            user_id=user_uuid,
             item_id=review_request.item_id,
             **fsrs_state_to_db_dict(updated_fsrs_state),
         )
@@ -213,7 +227,7 @@ async def record_review(
             update(SchedulerState)
             .where(
                 and_(
-                    SchedulerState.user_id == principal.user_id,
+                    SchedulerState.user_id == user_uuid,
                     SchedulerState.item_id == review_request.item_id,
                     SchedulerState.version == db_state.version,  # Optimistic locking
                 )
@@ -234,7 +248,7 @@ async def record_review(
 
     # Record the review
     review = Review(
-        user_id=principal.user_id,
+        user_id=user_uuid,
         item_id=review_request.item_id,
         mode=review_request.mode,
         response=review_request.response,

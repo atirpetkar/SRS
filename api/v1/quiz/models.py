@@ -32,7 +32,7 @@ class Quiz(Base):
         JSON, default=dict, server_default="{}"
     )
     started_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+        TIMESTAMP(timezone=True), nullable=False, default=func.now()
     )
     finished_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
 

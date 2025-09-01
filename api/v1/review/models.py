@@ -17,7 +17,7 @@ class SchedulerState(Base):
     __tablename__ = "scheduler_state"
 
     # Composite primary key
-    user_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(PG_UUID, primary_key=True)
     item_id: Mapped[UUID] = mapped_column(
         PG_UUID, ForeignKey("items.id"), primary_key=True
     )
@@ -47,12 +47,12 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id: Mapped[UUID] = mapped_column(PG_UUID, primary_key=True, default=uuid4)
-    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(PG_UUID, nullable=False)
     item_id: Mapped[UUID] = mapped_column(
         PG_UUID, ForeignKey("items.id"), nullable=False
     )
     ts: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+        TIMESTAMP(timezone=True), nullable=False, default=func.now()
     )
     mode: Mapped[str] = mapped_column(String(20), nullable=False)  # review, drill, mock
     response: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)

@@ -8,8 +8,11 @@ version = "1.0.0"
 description = "Content-agnostic practice loop with SRS scheduling"
 authors = [{name = "Learning OS", email = "dev@learning-os.com"}]
 
+[project.scripts]
+learning-os = "cli.main:app"
+
 [tool.hatch.build.targets.wheel]
-packages = ["api"]
+packages = ["api", "cli"]
 dependencies = [
     "fastapi>=0.116.0",
     "uvicorn[standard]>=0.35.0",
@@ -23,6 +26,9 @@ dependencies = [
     "httpx>=0.28.0",
     "ruff>=0.12.0",
     "black>=25.0.0",
+    "typer>=0.15.0",
+    "rich>=13.9.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]

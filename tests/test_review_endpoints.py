@@ -96,7 +96,7 @@ class TestReviewQueue:
         # Create scheduler state that's due
         past_due = datetime.now(UTC) - timedelta(hours=1)
         state = SchedulerState(
-            user_id=str(sample_user.id),
+            user_id=sample_user.id,
             item_id=item.id,
             difficulty=5.0,
             stability=2.0,

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class SchedulerStateBase(BaseModel):
     """Base schema for scheduler state."""
 
-    user_id: str
+    user_id: UUID
     item_id: UUID
     stability: float
     difficulty: float
@@ -50,7 +50,7 @@ class SchedulerStateResponse(SchedulerStateBase):
 class ReviewBase(BaseModel):
     """Base schema for reviews."""
 
-    user_id: str
+    user_id: UUID
     item_id: UUID
     mode: str
     response: dict[str, Any]

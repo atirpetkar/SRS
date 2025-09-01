@@ -183,3 +183,9 @@ async def sample_user(db_session: AsyncSession, sample_org):
     await db_session.commit()
     await db_session.refresh(user)
     return user
+
+
+@pytest.fixture
+async def sample_org_and_user(sample_org, sample_user):
+    """Provide both org and user as a tuple for convenience."""
+    return str(sample_org.id), str(sample_user.id)

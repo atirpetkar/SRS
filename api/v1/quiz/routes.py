@@ -62,8 +62,11 @@ async def start_quiz(
         )
 
     # Build base query for published items in user's org
+    from api.v1.review.routes import string_to_uuid
+    org_uuid = string_to_uuid(principal.org_id)
+    user_uuid = string_to_uuid(principal.user_id)
     base_query = select(Item).where(
-        and_(Item.org_id == principal.org_id, Item.status == "published")
+        and_(Item.org_id == org_uuid, Item.status == "published")
     )
 
     # Apply filters
@@ -79,7 +82,7 @@ async def start_quiz(
                 SchedulerState,
                 and_(
                     SchedulerState.item_id == Item.id,
-                    SchedulerState.user_id == principal.user_id,
+                    SchedulerState.user_id == user_uuid,
                 ),
             )
             .where(SchedulerState.due_at <= datetime.now(UTC))
@@ -107,7 +110,7 @@ async def start_quiz(
 
     # Create quiz record
     quiz = Quiz(
-        org_id=principal.org_id,
+        org_id=org_uuid,
         user_id=principal.user_id,
         mode=request.mode,
         params=params,
@@ -163,12 +166,16 @@ async def submit_quiz_item(
 ) -> QuizSubmitResponse:
     """Submit a response for a quiz item and get grading results."""
 
+    # Convert principal IDs to UUIDs
+    from api.v1.review.routes import string_to_uuid
+    org_uuid = string_to_uuid(principal.org_id)
+
     # Validate quiz exists and belongs to user
     quiz_query = select(Quiz).where(
         and_(
             Quiz.id == request.quiz_id,
             Quiz.user_id == principal.user_id,
-            Quiz.org_id == principal.org_id,
+            Quiz.org_id == org_uuid,
             Quiz.finished_at.is_(None),  # Quiz must not be finished
         )
     )
@@ -237,12 +244,16 @@ async def finish_quiz(
 ) -> QuizFinishResponse:
     """Finish a quiz session and calculate final score."""
 
+    # Convert principal IDs to UUIDs
+    from api.v1.review.routes import string_to_uuid
+    org_uuid = string_to_uuid(principal.org_id)
+
     # Validate quiz exists and belongs to user
     quiz_query = select(Quiz).where(
         and_(
             Quiz.id == request.quiz_id,
             Quiz.user_id == principal.user_id,
-            Quiz.org_id == principal.org_id,
+            Quiz.org_id == org_uuid,
             Quiz.finished_at.is_(None),  # Quiz must not be finished
         )
     )
