@@ -120,6 +120,7 @@ async def test_engine():
             await conn.execute(
                 text(
                     """
+                DROP TRIGGER IF EXISTS items_search_document_trigger ON items;
                 CREATE TRIGGER items_search_document_trigger
                     BEFORE INSERT OR UPDATE OF type, payload, tags ON items
                     FOR EACH ROW EXECUTE FUNCTION items_update_search_document();

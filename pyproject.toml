@@ -50,7 +50,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [
@@ -71,6 +71,11 @@ ignore = [
 "*/routes.py" = ["B008"]
 # SQLAlchemy models: ignore string-based relationship forward references (standard pattern)
 "*/models.py" = ["F821"]
+# Alembic migration files: allow standard boilerplate imports and formatting
+"migrations/versions/*.py" = ["F401", "UP007", "UP035", "I001"]
+# Test files: allow more flexible patterns for testing scenarios
+"test_*.py" = ["E722", "F841", "B007"]
+"tests/test_*.py" = ["E722", "F841", "B007"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -79,7 +84,7 @@ line-ending = "auto"
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py312']
 include = '\.pyi?$'
 
 [tool.pytest.ini_options]

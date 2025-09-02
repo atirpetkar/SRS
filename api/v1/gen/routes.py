@@ -8,13 +8,13 @@ import time
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.config.settings import Settings, get_settings
-from api.infra.database import get_session
+from api.config.settings import Settings, SettingsDep
+from api.infra.database import SessionDep
 from api.v1.core.registries import generator_registry
-from api.v1.core.security import Principal, get_principal
+from api.v1.core.security import Principal, PrincipalDep
 from api.v1.gen.schemas import (
     GenerateRequest,
     GenerateResponse,
@@ -22,6 +22,7 @@ from api.v1.gen.schemas import (
     RejectedItem,
 )
 from api.v1.items.models import Item
+from api.v1.items.routes import ensure_dev_entities_exist, string_to_uuid
 from api.v1.items.utils import normalize_tags, validate_difficulty
 from api.v1.search.embedding_service import EmbeddingService
 
@@ -32,9 +33,9 @@ router = APIRouter()
 @router.post("/items/generate", response_model=GenerateResponse)
 async def generate_items(
     request: GenerateRequest,
-    principal: Principal = Depends(get_principal),
-    settings: Settings = Depends(get_settings),
-    session: AsyncSession = Depends(get_session),
+    principal: Principal = PrincipalDep,
+    settings: Settings = SettingsDep,
+    session: AsyncSession = SessionDep,
 ) -> GenerateResponse:
     """
     Generate educational items from text using rule-based methods.
@@ -73,6 +74,9 @@ async def generate_items(
             raise HTTPException(
                 status_code=400, detail="Input text must be at least 50 characters long"
             )
+
+        # Ensure dev entities exist (for dev mode)
+        await ensure_dev_entities_exist(session, principal)
 
         # Get the generator
         generator = generator_registry.get("basic_rules")
@@ -135,7 +139,7 @@ async def generate_items(
                 ]:  # Check only first 5 for performance
                     # Create temporary item for duplicate check
                     temp_item = Item(
-                        org_id=principal.org_id,
+                        org_id=string_to_uuid(principal.org_id),
                         type=item_data["type"],
                         payload=item_data["payload"],
                         tags=item_data["tags"],
@@ -167,13 +171,13 @@ async def generate_items(
         staged_ids = []
         for item_data in validated_items:
             item = Item(
-                org_id=principal.org_id,
+                org_id=string_to_uuid(principal.org_id),
                 type=item_data["type"],
                 payload=item_data["payload"],
                 tags=item_data["tags"],
                 difficulty=item_data.get("difficulty"),
                 status="draft",  # Generated items start as drafts
-                metadata=item_data["metadata"],
+                meta=item_data["metadata"],
                 created_by=principal.user_id,
             )
 
@@ -287,9 +291,11 @@ async def get_generator_info(generator_name: str) -> dict[str, Any]:
         info = {
             "name": generator_name,
             "type": "rule_based" if generator_name == "basic_rules" else "unknown",
-            "description": "Deterministic rule-based content generator using NLP"
-            if generator_name == "basic_rules"
-            else "Unknown generator",
+            "description": (
+                "Deterministic rule-based content generator using NLP"
+                if generator_name == "basic_rules"
+                else "Unknown generator"
+            ),
             "supported_item_types": ["flashcard", "mcq", "cloze", "short_answer"],
             "supports_offline_generation": True,
             "requires_external_apis": False,

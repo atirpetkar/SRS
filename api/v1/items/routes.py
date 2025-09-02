@@ -159,6 +159,9 @@ async def list_items(
 ):
     """List items with hybrid search, filtering, and pagination."""
 
+    # Ensure dev entities exist
+    await ensure_dev_entities_exist(session, principal)
+
     # Use hybrid search service for enhanced search capabilities
     search_service = HybridSearchService(settings)
 
@@ -376,13 +379,14 @@ async def list_staged_items(
     filters: ItemFilters = _item_filters_dep,
     principal: Principal = PrincipalDep,
     session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
 ):
     """List items in draft status (staged for approval)."""
 
     # Force status to 'draft' for staged items
     filters.status = "draft"
 
-    return await list_items(filters, principal, session)
+    return await list_items(filters, principal, session, settings)
 
 
 @router.post("/items/approve", response_model=ApprovalResult)

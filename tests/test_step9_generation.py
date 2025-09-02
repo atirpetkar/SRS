@@ -5,8 +5,6 @@ Tests the BasicRulesGenerator and generation API endpoints with acceptance crite
 """
 
 import pytest
-from typing import Dict, List, Any
-from unittest.mock import patch, MagicMock
 
 from api.v1.gen.basic_rules import BasicRulesGenerator
 from api.v1.gen.schemas import GenerateRequest
@@ -74,10 +72,10 @@ class TestBasicRulesGenerator:
         """Test keypoint extraction for flashcard generation."""
         doc = generator.nlp(sample_educational_text)
         keypoints = generator._extract_keypoints(doc)
-        
+
         assert len(keypoints) > 0
         assert any("photosynthesis" in kp["term"].lower() for kp in keypoints)
-        
+
         for keypoint in keypoints:
             assert "term" in keypoint
             assert "definition" in keypoint
@@ -89,9 +87,9 @@ class TestBasicRulesGenerator:
         """Test numeric fact extraction for MCQ generation."""
         doc = generator.nlp(sample_educational_text)
         numeric_facts = generator._extract_numeric_facts(doc)
-        
+
         assert len(numeric_facts) > 0
-        
+
         for fact in numeric_facts:
             assert "sentence" in fact
             assert "number" in fact
@@ -103,9 +101,9 @@ class TestBasicRulesGenerator:
         doc = generator.nlp(sample_educational_text)
         sentences = list(doc.sents)
         clozes = generator._generate_cloze_questions(sentences, "core", 5)
-        
+
         assert len(clozes) > 0
-        
+
         for cloze in clozes:
             assert cloze["type"] == "cloze"
             assert "text" in cloze["payload"]
@@ -118,9 +116,9 @@ class TestBasicRulesGenerator:
         """Test procedure and formula extraction."""
         doc = generator.nlp(sample_educational_text)
         procedures = generator._extract_procedures(doc)
-        
+
         assert len(procedures) > 0
-        
+
         # Should find the photosynthesis equation
         formula_found = any(proc["type"] == "formula" for proc in procedures)
         assert formula_found
@@ -128,14 +126,14 @@ class TestBasicRulesGenerator:
     def test_numeric_distractor_generation(self, generator):
         """Test heuristic distractor generation for MCQs."""
         distractors = generator._generate_numeric_distractors(100, None)
-        
+
         assert len(distractors) > 0
         assert 100 not in distractors  # Correct answer shouldn't be in distractors
-        
+
         # Test with unit
         unit = {"unit": "%", "type": "percentage"}
         percentage_distractors = generator._generate_numeric_distractors(75, unit)
-        
+
         assert len(percentage_distractors) > 0
         assert 25 in percentage_distractors  # Should include complement (100-75)
 
@@ -145,21 +143,27 @@ class TestBasicRulesGenerator:
         test_items = [
             {  # Good item
                 "type": "flashcard",
-                "payload": {"front": "What is photosynthesis?", "back": "A biological process"},
+                "payload": {
+                    "front": "What is photosynthesis?",
+                    "back": "A biological process",
+                },
                 "tags": ["test"],
-                "metadata": {}
+                "metadata": {},
             },
             {  # Too short
                 "type": "flashcard",
                 "payload": {"front": "?", "back": "A"},
                 "tags": ["test"],
-                "metadata": {}
+                "metadata": {},
             },
             {  # Duplicate content (same as first)
                 "type": "flashcard",
-                "payload": {"front": "What is photosynthesis?", "back": "A biological process"},
+                "payload": {
+                    "front": "What is photosynthesis?",
+                    "back": "A biological process",
+                },
                 "tags": ["test"],
-                "metadata": {}
+                "metadata": {},
             },
             {  # MCQ with no correct answer
                 "type": "mcq",
@@ -167,16 +171,16 @@ class TestBasicRulesGenerator:
                     "stem": "What is the formula for photosynthesis?",
                     "options": [
                         {"id": "0", "text": "Wrong A", "is_correct": False},
-                        {"id": "1", "text": "Wrong B", "is_correct": False}
-                    ]
+                        {"id": "1", "text": "Wrong B", "is_correct": False},
+                    ],
                 },
                 "tags": ["test"],
-                "metadata": {}
-            }
+                "metadata": {},
+            },
         ]
-        
+
         quality_items = generator._apply_quality_gates(test_items)
-        
+
         # Should only have 1 item (first good one)
         assert len(quality_items) == 1
         assert quality_items[0]["payload"]["front"] == "What is photosynthesis?"
@@ -187,25 +191,27 @@ class TestBasicRulesGenerator:
             text=sample_educational_text,
             item_types=["flashcard", "mcq", "cloze", "short_answer"],
             count=15,
-            difficulty="core"
+            difficulty="core",
         )
-        
+
         # Acceptance criteria: 12-20 mixed items from 800-1000 words
         assert 12 <= len(items) <= 20
-        
+
         # Check that we have mixed item types
         types_generated = {item["type"] for item in items}
         assert len(types_generated) >= 2  # At least 2 different types
-        
+
         # All items should pass validation (>90% requirement)
         valid_items = 0
         for item in items:
-            if generator._check_minimum_length(item) and generator._check_answer_clarity(item):
+            if generator._check_minimum_length(
+                item
+            ) and generator._check_answer_clarity(item):
                 valid_items += 1
-        
+
         validation_rate = valid_items / len(items) if items else 0
         assert validation_rate >= 0.9  # >90% pass validation
-        
+
         # Check metadata and provenance
         for item in items:
             assert "metadata" in item
@@ -218,7 +224,7 @@ class TestBasicRulesGenerator:
         # Empty text
         items = generator.generate(text="", count=5)
         assert len(items) == 0
-        
+
         # Very short text
         items = generator.generate(text="Short.", count=5)
         assert len(items) == 0
@@ -227,11 +233,9 @@ class TestBasicRulesGenerator:
         """Test generation with different difficulty levels."""
         for difficulty in ["intro", "core", "stretch"]:
             items = generator.generate(
-                text=sample_educational_text,
-                difficulty=difficulty,
-                count=5
+                text=sample_educational_text, difficulty=difficulty, count=5
             )
-            
+
             for item in items:
                 assert item["difficulty"] == difficulty
 
@@ -239,21 +243,17 @@ class TestBasicRulesGenerator:
         """Test generation with specific item types."""
         # Test single item type
         items = generator.generate(
-            text=sample_educational_text,
-            item_types=["flashcard"],
-            count=10
+            text=sample_educational_text, item_types=["flashcard"], count=10
         )
-        
+
         for item in items:
             assert item["type"] == "flashcard"
-        
+
         # Test multiple item types
         items = generator.generate(
-            text=sample_educational_text,
-            item_types=["mcq", "cloze"],
-            count=10
+            text=sample_educational_text, item_types=["mcq", "cloze"], count=10
         )
-        
+
         types_found = {item["type"] for item in items}
         assert types_found.issubset({"mcq", "cloze"})
 
@@ -265,25 +265,26 @@ class TestGenerationAPI:
     def sample_request(self):
         """Sample generation request."""
         return GenerateRequest(
-            text="Photosynthesis is the process by which plants convert sunlight into energy. " * 20,
+            text="Photosynthesis is the process by which plants convert sunlight into energy. "
+            * 20,
             types=["flashcard", "mcq"],
             count=10,
-            difficulty="core"
+            difficulty="core",
         )
 
     @pytest.mark.asyncio
     async def test_generate_endpoint_success(self, client, sample_request):
         """Test successful content generation via API."""
         response = await client.post("/v1/items/generate", json=sample_request.dict())
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert "generated" in data
         assert "rejected" in data
         assert "diagnostics" in data
         assert "warnings" in data
-        
+
         # Check diagnostics structure
         diagnostics = data["diagnostics"]
         assert "input_length" in diagnostics
@@ -297,34 +298,38 @@ class TestGenerationAPI:
         # Empty request
         response = await client.post("/v1/items/generate", json={})
         assert response.status_code == 400
-        
+
         # Invalid item type
-        response = await client.post("/v1/items/generate", json={
-            "text": "Sample text for testing generation",
-            "types": ["invalid_type"]
-        })
+        response = await client.post(
+            "/v1/items/generate",
+            json={
+                "text": "Sample text for testing generation",
+                "types": ["invalid_type"],
+            },
+        )
         assert response.status_code == 422
-        
+
         # Invalid difficulty
-        response = await client.post("/v1/items/generate", json={
-            "text": "Sample text for testing generation",
-            "difficulty": "invalid_difficulty"
-        })
+        response = await client.post(
+            "/v1/items/generate",
+            json={
+                "text": "Sample text for testing generation",
+                "difficulty": "invalid_difficulty",
+            },
+        )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
     async def test_generate_endpoint_text_too_short(self, client):
         """Test API with text that's too short."""
-        response = await client.post("/v1/items/generate", json={
-            "text": "Short text."
-        })
+        response = await client.post("/v1/items/generate", json={"text": "Short text."})
         assert response.status_code == 400
 
     @pytest.mark.asyncio
     async def test_list_generators_endpoint(self, client):
         """Test listing available generators."""
         response = await client.get("/v1/generators")
-        
+
         assert response.status_code == 200
         generators = response.json()
         assert "basic_rules" in generators
@@ -333,7 +338,7 @@ class TestGenerationAPI:
     async def test_generator_info_endpoint(self, client):
         """Test getting generator information."""
         response = await client.get("/v1/generators/basic_rules/info")
-        
+
         assert response.status_code == 200
         info = response.json()
         assert info["name"] == "basic_rules"
@@ -419,36 +424,43 @@ class TestAcceptanceCriteria:
         Acceptance Test: From 800–1000 words, produce 12–20 mixed items; >90% pass validation.
         """
         generator = BasicRulesGenerator()
-        
+
         # Verify input is in the right range
         word_count = len(large_sample_text.split())
-        assert 800 <= word_count <= 1000, f"Sample text has {word_count} words, need 800-1000"
-        
+        assert (
+            800 <= word_count <= 1000
+        ), f"Sample text has {word_count} words, need 800-1000"
+
         # Generate items
         items = generator.generate(
             text=large_sample_text,
             item_types=["flashcard", "mcq", "cloze", "short_answer"],
             count=None,  # Let it decide based on text length
-            difficulty="core"
+            difficulty="core",
         )
-        
+
         # Should produce 12-20 mixed items
         assert 12 <= len(items) <= 20, f"Generated {len(items)} items, expected 12-20"
-        
+
         # Should have mixed item types
         types_generated = {item["type"] for item in items}
-        assert len(types_generated) >= 2, f"Only generated {types_generated}, need mixed types"
-        
+        assert (
+            len(types_generated) >= 2
+        ), f"Only generated {types_generated}, need mixed types"
+
         # >90% should pass validation
         valid_count = 0
         for item in items:
-            if (generator._check_minimum_length(item) and 
-                generator._check_answer_clarity(item)):
+            if generator._check_minimum_length(
+                item
+            ) and generator._check_answer_clarity(item):
                 valid_count += 1
-        
+
         validation_rate = valid_count / len(items)
-        assert validation_rate > 0.9, f"Only {validation_rate:.1%} items passed validation, need >90%"
-        
+        assert (
+            validation_rate > 0.9
+        ), f"Only {validation_rate:.1%} items passed validation, need >90%"
+
         # Items should have rejection reasons if any failed
         rejected_count = len(items) - valid_count
         if rejected_count > 0:
@@ -458,45 +470,42 @@ class TestAcceptanceCriteria:
     def test_all_item_types_generated(self, large_sample_text):
         """Test that all four item types can be generated from suitable content."""
         generator = BasicRulesGenerator()
-        
+
         for item_type in ["flashcard", "mcq", "cloze", "short_answer"]:
             items = generator.generate(
                 text=large_sample_text,
                 item_types=[item_type],
                 count=5,
-                difficulty="core"
+                difficulty="core",
             )
-            
+
             assert len(items) > 0, f"No items generated for type: {item_type}"
             assert all(item["type"] == item_type for item in items)
 
     def test_provenance_metadata_completeness(self, large_sample_text):
         """Test that all generated items have complete provenance metadata."""
         generator = BasicRulesGenerator()
-        
-        items = generator.generate(
-            text=large_sample_text,
-            count=10,
-            difficulty="core"
-        )
-        
+
+        items = generator.generate(text=large_sample_text, count=10, difficulty="core")
+
         assert len(items) > 0
-        
+
         for item in items:
             # Check required metadata fields
             assert "metadata" in item
             metadata = item["metadata"]
-            
+
             assert "generation_method" in metadata
             assert "confidence" in metadata
             assert "provenance" in metadata
-            
+
             # Check provenance details
             provenance = metadata["provenance"]
             assert "generator" in provenance
             assert "rule" in provenance
             assert provenance["generator"] == "basic_rules"
-            
+
             # Should have source information
-            assert ("source_text" in metadata or 
-                   "source_length" in provenance), "Missing source information in provenance"
+            assert (
+                "source_text" in metadata or "source_length" in provenance
+            ), "Missing source information in provenance"

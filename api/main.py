@@ -18,6 +18,8 @@ from api.v1.core.registries import (
     scheduler_registry,
     vectorizer_registry,
 )
+from api.v1.gen.registry_init import init_generator_registry
+from api.v1.gen.routes import router as gen_router
 from api.v1.healthz import router as health_router
 from api.v1.items.registry_init import register_importers, register_item_validators
 from api.v1.items.routes import router as items_router
@@ -27,8 +29,6 @@ from api.v1.quiz.routes import router as quiz_router
 from api.v1.review.registry_init import init_review_registries
 from api.v1.review.routes import router as review_router
 from api.v1.search.registry_init import init_vectorizer_registry
-from api.v1.gen.registry_init import init_generator_registry
-from api.v1.gen.routes import router as gen_router
 
 
 def create_app() -> FastAPI:
