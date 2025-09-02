@@ -1,5 +1,7 @@
 # Keep Claude Code files private
 *.md
+    CLAUDE.md
+warp.md
 .claude/
 
 # Documentation (keep local only)

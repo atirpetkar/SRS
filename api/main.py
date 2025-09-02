@@ -27,6 +27,8 @@ from api.v1.quiz.routes import router as quiz_router
 from api.v1.review.registry_init import init_review_registries
 from api.v1.review.routes import router as review_router
 from api.v1.search.registry_init import init_vectorizer_registry
+from api.v1.gen.registry_init import init_generator_registry
+from api.v1.gen.routes import router as gen_router
 
 
 def create_app() -> FastAPI:
@@ -71,6 +73,7 @@ def create_app() -> FastAPI:
     init_review_registries()
     init_quiz_registries()
     init_vectorizer_registry()
+    init_generator_registry()
 
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])
@@ -78,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(progress_router, prefix="/v1", tags=["progress"])
     app.include_router(quiz_router, prefix="/v1", tags=["quiz"])
     app.include_router(review_router, prefix="/v1", tags=["review"])
+    app.include_router(gen_router, prefix="/v1", tags=["generation"])
 
     # Freeze registries in non-development environments to prevent runtime modifications
     if settings.environment != "development":
