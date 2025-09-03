@@ -46,7 +46,10 @@ class ItemEmbedding(Base):
 
     # Extensible metadata (renamed to avoid SQLAlchemy conflict)
     meta: Mapped[dict[str, Any]] = mapped_column(
-        "metadata", JSON, default=dict, server_default="{}"  # Column name in database
+        "metadata",
+        JSON,
+        default=dict,
+        server_default="{}",  # Column name in database
     )
 
     # Relationship back to item

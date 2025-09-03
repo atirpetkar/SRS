@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from fastapi import HTTPException
 
 from api.config.settings import AuthMode
 from api.v1.core.security import Principal, get_principal
@@ -20,11 +21,22 @@ async def test_get_principal_auth_mode_none():
 
 
 @pytest.mark.asyncio
-async def test_get_principal_auth_mode_dev_not_implemented():
-    """Test get_principal with AUTH_MODE=dev raises NotImplementedError."""
+async def test_get_principal_auth_mode_dev_requires_headers():
+    """Test get_principal with AUTH_MODE=dev requires headers."""
     with patch("api.v1.core.security.settings.auth_mode", AuthMode.DEV):
-        with pytest.raises(NotImplementedError, match="Dev auth mode not implemented"):
-            await get_principal()
+        # Test missing headers - pass None explicitly since we're bypassing FastAPI DI
+        with pytest.raises(HTTPException) as exc_info:
+            await get_principal(x_user_id=None, x_org_id=None)
+        assert exc_info.value.status_code == 400
+        assert "X-User-ID and X-Org-ID headers are required" in str(
+            exc_info.value.detail
+        )
+
+        # Test with headers - should work
+        principal = await get_principal(x_user_id="test-user", x_org_id="test-org")
+        assert principal.user_id == "test-user"
+        assert principal.org_id == "test-org"
+        assert principal.roles == ["admin"]
 
 
 @pytest.mark.asyncio

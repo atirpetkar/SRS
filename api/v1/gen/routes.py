@@ -22,7 +22,7 @@ from api.v1.gen.schemas import (
     RejectedItem,
 )
 from api.v1.items.models import Item
-from api.v1.items.routes import ensure_dev_entities_exist, string_to_uuid
+from api.v1.items.routes import ensure_dev_entities_exist
 from api.v1.items.utils import normalize_tags, validate_difficulty
 from api.v1.search.embedding_service import EmbeddingService
 
@@ -139,7 +139,7 @@ async def generate_items(
                 ]:  # Check only first 5 for performance
                     # Create temporary item for duplicate check
                     temp_item = Item(
-                        org_id=string_to_uuid(principal.org_id),
+                        org_id=principal.org_uuid,
                         type=item_data["type"],
                         payload=item_data["payload"],
                         tags=item_data["tags"],
@@ -171,7 +171,7 @@ async def generate_items(
         staged_ids = []
         for item_data in validated_items:
             item = Item(
-                org_id=string_to_uuid(principal.org_id),
+                org_id=principal.org_uuid,
                 type=item_data["type"],
                 payload=item_data["payload"],
                 tags=item_data["tags"],

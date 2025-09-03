@@ -1,5 +1,5 @@
 from typing import Any
-from uuid import NAMESPACE_DNS, UUID, uuid5
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, select
@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from api.config.settings import Settings, SettingsDep
 from api.infra.database import SessionDep
+from api.v1.core.idempotency import get_idempotency_key, handle_idempotent_request
 from api.v1.core.registries import importer_registry, item_type_registry
 from api.v1.core.security import Principal, PrincipalDep
 from api.v1.items.models import Item, Organization, User
@@ -33,15 +34,10 @@ router = APIRouter()
 _item_filters_dep = Depends()
 
 
-def string_to_uuid(text: str) -> UUID:
-    """Convert a string to a deterministic UUID using namespace DNS."""
-    return uuid5(NAMESPACE_DNS, text)
-
-
 async def ensure_dev_entities_exist(session: AsyncSession, principal: Principal):
     """Ensure dev organization and user exist in the database."""
-    org_uuid = string_to_uuid(principal.org_id)
-    user_uuid = string_to_uuid(principal.user_id)
+    org_uuid = principal.org_uuid
+    user_uuid = principal.user_uuid
 
     # Check if org exists
     org_result = await session.execute(
@@ -84,7 +80,7 @@ async def get_item_by_id(
         .where(
             and_(
                 Item.id == item_id,
-                Item.org_id == string_to_uuid(principal.org_id),
+                Item.org_id == principal.org_uuid,
                 Item.deleted_at.is_(None),
             )
         )
@@ -130,7 +126,7 @@ async def create_item(
 
     # Create the item
     item = Item(
-        org_id=string_to_uuid(principal.org_id),
+        org_id=principal.org_uuid,
         type=item_data.type,
         payload=validated_payload,
         tags=item_data.tags or [],
@@ -183,7 +179,7 @@ async def list_items(
     # Perform search
     items, total = await search_service.search_items(
         session=session,
-        org_id=string_to_uuid(principal.org_id),
+        org_id=principal.org_uuid,
         query=filters.q,
         filters=filter_dict,
         limit=filters.limit,
@@ -205,15 +201,13 @@ async def list_items(
 # Import endpoints - placed here to avoid route conflicts
 
 
-@router.post("/items/import", response_model=ImportResult)
-async def import_items(
+async def _perform_import(
     import_request: ImportRequest,
-    principal: Principal = PrincipalDep,
-    session: AsyncSession = SessionDep,
-    settings: Settings = SettingsDep,
-):
-    """Import items from external content and stage them as drafts."""
-
+    principal: Principal,
+    session: AsyncSession,
+    settings: Settings,
+) -> tuple[dict, int]:
+    """Perform the actual import operation."""
     # Ensure dev entities exist
     await ensure_dev_entities_exist(session, principal)
 
@@ -240,7 +234,7 @@ async def import_items(
     staged_ids = []
     warnings = []
     total_errors = 0
-    org_uuid = string_to_uuid(principal.org_id)
+    org_uuid = principal.org_uuid
 
     # Check for batch constraints (max 5k items)
     if len(parsed_items) > 5000:
@@ -364,7 +358,7 @@ async def import_items(
     # Commit all successful items
     await session.commit()
 
-    return ImportResult(
+    result = ImportResult(
         staged_ids=staged_ids,
         warnings=warnings,
         diagnostics=diagnostics,
@@ -372,6 +366,35 @@ async def import_items(
         total_created=len(staged_ids),
         total_errors=total_errors,
     )
+
+    # Return as (dict, status_code) tuple for idempotency wrapper
+    return result.model_dump(), 200
+
+
+@router.post("/items/import", response_model=ImportResult)
+async def import_items(
+    import_request: ImportRequest,
+    principal: Principal = PrincipalDep,
+    session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
+    idempotency_key: str | None = Depends(get_idempotency_key),
+):
+    """Import items from external content and stage them as drafts."""
+
+    # Handle idempotent request
+    response_data, status_code = await handle_idempotent_request(
+        session,
+        principal,
+        "items_import",
+        idempotency_key,
+        _perform_import,
+        import_request,
+        principal,
+        session,
+        settings,
+    )
+
+    return ImportResult.model_validate(response_data)
 
 
 @router.get("/items/staged", response_model=ItemList)
@@ -389,19 +412,18 @@ async def list_staged_items(
     return await list_items(filters, principal, session, settings)
 
 
-@router.post("/items/approve", response_model=ApprovalResult)
-async def approve_items(
+async def _perform_approval(
     approval_request: ApprovalRequest,
-    principal: Principal = PrincipalDep,
-    session: AsyncSession = SessionDep,
-    settings: Settings = SettingsDep,
-):
+    principal: Principal,
+    session: AsyncSession,
+    settings: Settings,
+) -> tuple[dict, int]:
     """Approve staged items by changing their status to published."""
 
     approved_ids = []
     failed_ids = []
     errors = {}
-    org_uuid = string_to_uuid(principal.org_id)
+    org_uuid = principal.org_uuid
 
     for item_id in approval_request.ids:
         try:
@@ -443,9 +465,38 @@ async def approve_items(
     # Commit all changes
     await session.commit()
 
-    return ApprovalResult(
+    result = ApprovalResult(
         approved_ids=approved_ids, failed_ids=failed_ids, errors=errors
     )
+
+    # Return as (dict, status_code) tuple for idempotency wrapper
+    return result.model_dump(), 200
+
+
+@router.post("/items/approve", response_model=ApprovalResult)
+async def approve_items(
+    approval_request: ApprovalRequest,
+    principal: Principal = PrincipalDep,
+    session: AsyncSession = SessionDep,
+    settings: Settings = SettingsDep,
+    idempotency_key: str | None = Depends(get_idempotency_key),
+):
+    """Approve staged items by changing their status to published."""
+
+    # Handle idempotent request
+    response_data, status_code = await handle_idempotent_request(
+        session,
+        principal,
+        "items_approve",
+        idempotency_key,
+        _perform_approval,
+        approval_request,
+        principal,
+        session,
+        settings,
+    )
+
+    return ApprovalResult.model_validate(response_data)
 
 
 @router.get("/items/{item_id}", response_model=ItemResponse)
@@ -621,9 +672,7 @@ async def get_embedding_stats(
     """Get statistics about embeddings for the organization."""
     try:
         embedding_service = EmbeddingService(settings)
-        stats = await embedding_service.get_embedding_stats(
-            session, string_to_uuid(principal.org_id)
-        )
+        stats = await embedding_service.get_embedding_stats(session, principal.org_uuid)
         return stats
     except Exception as e:
         raise HTTPException(

@@ -3,7 +3,6 @@ Review API routes - FSRS scheduler and review queue endpoints.
 """
 
 from datetime import UTC, datetime
-from uuid import NAMESPACE_DNS, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, select, update
@@ -29,11 +28,6 @@ from api.v1.review.schemas import (
 router = APIRouter(prefix="/review", tags=["review"])
 
 
-def string_to_uuid(text: str) -> UUID:
-    """Convert a string to a deterministic UUID using namespace DNS."""
-    return uuid5(NAMESPACE_DNS, text)
-
-
 @router.get("/queue", response_model=dict)
 async def get_review_queue(
     limit: int = Query(20, ge=1, le=100),
@@ -51,8 +45,8 @@ async def get_review_queue(
     due_limit = limit - new_limit
 
     # Convert principal IDs to UUIDs
-    org_uuid = string_to_uuid(principal.org_id)
-    user_uuid = string_to_uuid(principal.user_id)
+    org_uuid = principal.org_uuid
+    user_uuid = principal.user_uuid
 
     # Base query for published items in the user's org
     base_query = (
@@ -154,8 +148,8 @@ async def record_review(
     """Record a review and update scheduler state."""
 
     # Convert principal IDs to UUIDs
-    org_uuid = string_to_uuid(principal.org_id)
-    user_uuid = string_to_uuid(principal.user_id)
+    org_uuid = principal.org_uuid
+    user_uuid = principal.user_uuid
 
     # Validate item exists and user has access
     item_query = select(Item).where(

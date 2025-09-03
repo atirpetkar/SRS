@@ -143,9 +143,9 @@ Environmental factors significantly affect photosynthetic rates. Carbon dioxide 
 
         for item_type, item_data in self.SAMPLE_ITEMS.items():
             response = await async_client.post("/v1/items", json=item_data)
-            assert (
-                response.status_code == 201
-            ), f"Failed to create {item_type}: {response.text}"
+            assert response.status_code == 201, (
+                f"Failed to create {item_type}: {response.text}"
+            )
 
             item = response.json()
             assert item["data"]["type"] == item_type

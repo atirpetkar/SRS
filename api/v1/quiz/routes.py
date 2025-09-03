@@ -62,10 +62,8 @@ async def start_quiz(
         )
 
     # Build base query for published items in user's org
-    from api.v1.review.routes import string_to_uuid
-
-    org_uuid = string_to_uuid(principal.org_id)
-    user_uuid = string_to_uuid(principal.user_id)
+    org_uuid = principal.org_uuid
+    user_uuid = principal.user_uuid
     base_query = select(Item).where(
         and_(Item.org_id == org_uuid, Item.status == "published")
     )
@@ -112,7 +110,7 @@ async def start_quiz(
     # Create quiz record
     quiz = Quiz(
         org_id=org_uuid,
-        user_id=principal.user_id,
+        user_id=principal.user_uuid,
         mode=request.mode,
         params=params,
     )
@@ -168,15 +166,13 @@ async def submit_quiz_item(
     """Submit a response for a quiz item and get grading results."""
 
     # Convert principal IDs to UUIDs
-    from api.v1.review.routes import string_to_uuid
-
-    org_uuid = string_to_uuid(principal.org_id)
+    org_uuid = principal.org_uuid
 
     # Validate quiz exists and belongs to user
     quiz_query = select(Quiz).where(
         and_(
             Quiz.id == request.quiz_id,
-            Quiz.user_id == principal.user_id,
+            Quiz.user_id == principal.user_uuid,
             Quiz.org_id == org_uuid,
             Quiz.finished_at.is_(None),  # Quiz must not be finished
         )
@@ -247,15 +243,13 @@ async def finish_quiz(
     """Finish a quiz session and calculate final score."""
 
     # Convert principal IDs to UUIDs
-    from api.v1.review.routes import string_to_uuid
-
-    org_uuid = string_to_uuid(principal.org_id)
+    org_uuid = principal.org_uuid
 
     # Validate quiz exists and belongs to user
     quiz_query = select(Quiz).where(
         and_(
             Quiz.id == request.quiz_id,
-            Quiz.user_id == principal.user_id,
+            Quiz.user_id == principal.user_uuid,
             Quiz.org_id == org_uuid,
             Quiz.finished_at.is_(None),  # Quiz must not be finished
         )
@@ -355,7 +349,7 @@ async def finish_quiz(
     # Create result record
     result_record = Result(
         quiz_id=request.quiz_id,
-        user_id=principal.user_id,
+        user_id=principal.user_uuid,
         score=final_score,
         breakdown=breakdown.model_dump(),
     )

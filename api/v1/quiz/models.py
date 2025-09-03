@@ -26,7 +26,7 @@ class Quiz(Base):
 
     id: Mapped[UUID] = mapped_column(PG_UUID, primary_key=True, default=uuid4)
     org_id: Mapped[UUID] = mapped_column(PG_UUID, ForeignKey("orgs.id"), nullable=False)
-    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(PG_UUID, nullable=False)
     mode: Mapped[str] = mapped_column(String(20), nullable=False)  # review, drill, mock
     params: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=dict, server_default="{}"
@@ -82,7 +82,7 @@ class Result(Base):
     quiz_id: Mapped[UUID] = mapped_column(
         PG_UUID, ForeignKey("quizzes.id", ondelete="CASCADE"), primary_key=True
     )
-    user_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(PG_UUID, primary_key=True)
     score: Mapped[float] = mapped_column(Float, nullable=False)
     breakdown: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=dict, server_default="{}"

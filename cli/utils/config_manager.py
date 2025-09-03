@@ -53,6 +53,11 @@ class ConfigManager:
             "api": {
                 "base_url": os.getenv("LEARNING_OS_API_URL", "http://localhost:8000"),
                 "timeout": 30,
+                "headers": {
+                    # Dev mode authentication headers (set when using AUTH_MODE=dev)
+                    # "X-User-ID": "your-username",
+                    # "X-Org-ID": "your-org",
+                },
             },
             "display": {
                 "items_per_page": 20,

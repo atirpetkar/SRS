@@ -133,9 +133,9 @@ TAGS: math, algebra
             validation_errors += 1
             print(f"Validation error for {item['type']}: {e}")
 
-    assert (
-        validation_errors == 0
-    ), f"Expected 0 validation errors, got {validation_errors}"
+    assert validation_errors == 0, (
+        f"Expected 0 validation errors, got {validation_errors}"
+    )
 
     print(f"✅ Successfully imported {len(items)} mixed items with 0 validation errors")
     print(f"   Type distribution: {type_counts}")

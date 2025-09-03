@@ -136,7 +136,7 @@ class OpenAIVectorizer:
                 self._client = OpenAI(api_key=api_key)
             except ImportError as e:
                 raise RuntimeError(
-                    "openai package not installed. " "Run: uv pip install openai"
+                    "openai package not installed. Run: uv pip install openai"
                 ) from e
         return self._client
 

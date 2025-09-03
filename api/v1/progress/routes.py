@@ -75,8 +75,8 @@ async def get_progress_overview(
     result = await db.execute(
         review_metrics_query,
         {
-            "user_id": principal.user_id,
-            "org_id": str(principal.org_id),
+            "user_id": principal.user_uuid,
+            "org_id": principal.org_uuid,
             "seven_days_ago": seven_days_ago,
             "now": now,
         },
@@ -117,8 +117,8 @@ async def get_progress_overview(
     result = await db.execute(
         streak_query,
         {
-            "user_id": principal.user_id,
-            "org_id": str(principal.org_id),
+            "user_id": principal.user_uuid,
+            "org_id": principal.org_uuid,
             "today": now.date(),
         },
     )
@@ -141,7 +141,7 @@ async def get_progress_overview(
 
     result = await db.execute(
         totals_query,
-        {"user_id": principal.user_id, "org_id": str(principal.org_id)},
+        {"user_id": principal.user_uuid, "org_id": principal.org_uuid},
     )
     totals = result.fetchone()
 
@@ -206,8 +206,8 @@ async def get_weak_areas(
     result = await db.execute(
         tags_query,
         {
-            "user_id": principal.user_id,
-            "org_id": str(principal.org_id),
+            "user_id": principal.user_uuid,
+            "org_id": principal.org_uuid,
             "top": top,
         },
     )
@@ -245,8 +245,8 @@ async def get_weak_areas(
     result = await db.execute(
         types_query,
         {
-            "user_id": principal.user_id,
-            "org_id": str(principal.org_id),
+            "user_id": principal.user_uuid,
+            "org_id": principal.org_uuid,
             "top": top,
         },
     )
@@ -284,8 +284,8 @@ async def get_weak_areas(
     result = await db.execute(
         difficulty_query,
         {
-            "user_id": principal.user_id,
-            "org_id": str(principal.org_id),
+            "user_id": principal.user_uuid,
+            "org_id": principal.org_uuid,
             "top": top,
         },
     )
@@ -359,8 +359,8 @@ async def get_forecast(
     result = await db.execute(
         forecast_query,
         {
-            "user_id": principal.user_id,
-            "org_id": str(principal.org_id),
+            "user_id": principal.user_uuid,
+            "org_id": principal.org_uuid,
             "now": now,
             "end_date": end_date,
         },

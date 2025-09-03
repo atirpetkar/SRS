@@ -427,9 +427,9 @@ class TestAcceptanceCriteria:
 
         # Verify input is in the right range
         word_count = len(large_sample_text.split())
-        assert (
-            800 <= word_count <= 1000
-        ), f"Sample text has {word_count} words, need 800-1000"
+        assert 800 <= word_count <= 1000, (
+            f"Sample text has {word_count} words, need 800-1000"
+        )
 
         # Generate items
         items = generator.generate(
@@ -444,9 +444,9 @@ class TestAcceptanceCriteria:
 
         # Should have mixed item types
         types_generated = {item["type"] for item in items}
-        assert (
-            len(types_generated) >= 2
-        ), f"Only generated {types_generated}, need mixed types"
+        assert len(types_generated) >= 2, (
+            f"Only generated {types_generated}, need mixed types"
+        )
 
         # >90% should pass validation
         valid_count = 0
@@ -457,9 +457,9 @@ class TestAcceptanceCriteria:
                 valid_count += 1
 
         validation_rate = valid_count / len(items)
-        assert (
-            validation_rate > 0.9
-        ), f"Only {validation_rate:.1%} items passed validation, need >90%"
+        assert validation_rate > 0.9, (
+            f"Only {validation_rate:.1%} items passed validation, need >90%"
+        )
 
         # Items should have rejection reasons if any failed
         rejected_count = len(items) - valid_count
@@ -506,6 +506,6 @@ class TestAcceptanceCriteria:
             assert provenance["generator"] == "basic_rules"
 
             # Should have source information
-            assert (
-                "source_text" in metadata or "source_length" in provenance
-            ), "Missing source information in provenance"
+            assert "source_text" in metadata or "source_length" in provenance, (
+                "Missing source information in provenance"
+            )

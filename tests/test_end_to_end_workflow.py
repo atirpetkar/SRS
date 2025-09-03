@@ -83,9 +83,9 @@ conservation of momentum principles.
         )
 
         # Verify generation quality
-        assert (
-            len(generation_result["generated"]) >= 8
-        ), "Should generate at least 8 quality items"
+        assert len(generation_result["generated"]) >= 8, (
+            "Should generate at least 8 quality items"
+        )
 
         generated_items = generation_result["generated"]
         generated_types = {item["type"] for item in generated_items}
