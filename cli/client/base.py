@@ -19,17 +19,15 @@ class APIClient:
     """HTTP client for Learning OS API"""
 
     def __init__(
-        self, 
-        base_url: str = "http://localhost:8000", 
+        self,
+        base_url: str = "http://localhost:8000",
         timeout: int = 30,
-        headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.default_headers = headers or {}
         self.client = httpx.Client(
-            base_url=self.base_url, 
-            timeout=timeout,
-            headers=self.default_headers
+            base_url=self.base_url, timeout=timeout, headers=self.default_headers
         )
 
     def __enter__(self):
@@ -65,32 +63,36 @@ class APIClient:
         return data
 
     def get(
-        self, 
-        path: str, 
+        self,
+        path: str,
         params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Make GET request"""
         try:
             # Merge request-specific headers with default headers
             request_headers = {**self.default_headers, **(headers or {})}
-            response = self.client.get(f"/v1{path}", params=params, headers=request_headers)
+            response = self.client.get(
+                f"/v1{path}", params=params, headers=request_headers
+            )
             return self._handle_response(response)
         except httpx.RequestError as e:
             console.print(f"[red]Connection error: {e}[/red]")
             raise LearningOSError(f"Connection failed: {e}") from None
 
     def post(
-        self, 
-        path: str, 
+        self,
+        path: str,
         json: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Make POST request"""
         try:
             # Merge request-specific headers with default headers
             request_headers = {**self.default_headers, **(headers or {})}
-            response = self.client.post(f"/v1{path}", json=json, headers=request_headers)
+            response = self.client.post(
+                f"/v1{path}", json=json, headers=request_headers
+            )
             return self._handle_response(response)
         except httpx.RequestError as e:
             console.print(f"[red]Connection error: {e}[/red]")

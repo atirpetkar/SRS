@@ -7,7 +7,7 @@ from rich.panel import Panel
 from .client.endpoints import LearningOSClient
 
 # Import command modules
-from .commands import config, items, progress, quiz, review
+from .commands import analytics, config, items, progress, quiz, review, templates
 from .utils.config_manager import config as config_manager
 from .utils.formatting import print_error, print_info
 
@@ -24,6 +24,8 @@ app = typer.Typer(
 app.add_typer(review.app, name="review")
 app.add_typer(quiz.app, name="quiz")
 app.add_typer(progress.app, name="progress")
+app.add_typer(analytics.app, name="analytics")
+app.add_typer(templates.app, name="templates")
 app.add_typer(items.app, name="items")
 app.add_typer(config.app, name="config")
 

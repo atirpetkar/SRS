@@ -22,6 +22,17 @@ class EmbeddingsType(str, Enum):
     OPENAI = "openai"
 
 
+class JobBackend(str, Enum):
+    DB = "db"
+    DRAMATIQ = "dramatiq"
+    CELERY = "celery"
+
+
+class StorageBackend(str, Enum):
+    LOCAL = "local"
+    S3 = "s3"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -52,6 +63,48 @@ class Settings(BaseSettings):
     # Features
     enable_llm_creator: bool = Field(
         default=False, description="Enable LLM-based content creation"
+    )
+
+    # Jobs System
+    job_backend: JobBackend = Field(
+        default=JobBackend.DB, description="Background job backend"
+    )
+    job_concurrency: int = Field(
+        default=4, description="Maximum concurrent jobs per worker"
+    )
+    job_poll_interval_ms: int = Field(
+        default=1000, description="Job polling interval in milliseconds"
+    )
+    job_max_attempts: int = Field(default=3, description="Maximum job retry attempts")
+    job_backoff_base_ms: int = Field(
+        default=1000, description="Base backoff delay in milliseconds"
+    )
+    job_max_backoff_s: int = Field(
+        default=300, description="Maximum backoff delay in seconds"
+    )
+    job_visibility_timeout_s: int = Field(
+        default=600, description="Job visibility timeout in seconds"
+    )
+    job_cleanup_after_days: int = Field(
+        default=7, description="Days to keep completed jobs"
+    )
+
+    # Embeddings Migration
+    embeddings_async: bool = Field(
+        default=False, description="Compute embeddings asynchronously via jobs"
+    )
+
+    # Object Storage
+    storage_backend: StorageBackend = Field(
+        default=StorageBackend.LOCAL, description="Object storage backend"
+    )
+    storage_local_root: str = Field(
+        default="./var/storage", description="Local storage root directory"
+    )
+    upload_max_mb: int = Field(default=10, description="Maximum upload size in MB")
+    upload_allowed_types: str = Field(
+        default="image/jpeg,image/png,image/gif,image/webp,audio/mpeg,audio/wav,video/mp4",
+        description="Comma-separated list of allowed MIME types",
     )
 
     # Logging

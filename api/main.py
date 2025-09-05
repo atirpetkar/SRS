@@ -15,12 +15,14 @@ from api.v1.core.registries import (
     grader_registry,
     importer_registry,
     item_type_registry,
+    job_registry,
     scheduler_registry,
     vectorizer_registry,
 )
 from api.v1.gen.registry_init import init_generator_registry
 from api.v1.gen.routes import router as gen_router
 from api.v1.healthz import router as health_router
+from api.v1.infra.jobs.routes import router as jobs_router
 from api.v1.items.registry_init import register_importers, register_item_validators
 from api.v1.items.routes import router as items_router
 from api.v1.progress.routes import router as progress_router
@@ -75,6 +77,8 @@ def create_app() -> FastAPI:
     init_vectorizer_registry()
     init_generator_registry()
 
+    # Initialize job handlers
+
     # Include routers with /v1 prefix
     app.include_router(health_router, prefix="/v1", tags=["health"])
     app.include_router(items_router, prefix="/v1", tags=["items"])
@@ -82,6 +86,7 @@ def create_app() -> FastAPI:
     app.include_router(quiz_router, prefix="/v1", tags=["quiz"])
     app.include_router(review_router, prefix="/v1", tags=["review"])
     app.include_router(gen_router, prefix="/v1", tags=["generation"])
+    app.include_router(jobs_router, prefix="/v1", tags=["jobs"])
 
     # Freeze registries in non-development environments to prevent runtime modifications
     if settings.environment != "development":
@@ -91,6 +96,7 @@ def create_app() -> FastAPI:
         importer_registry.freeze()
         generator_registry.freeze()
         vectorizer_registry.freeze()
+        job_registry.freeze()
 
     return app
 

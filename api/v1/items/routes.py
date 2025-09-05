@@ -450,13 +450,49 @@ async def _perform_approval(
             approved_ids.append(item_id)
 
             # Compute embedding for newly published item
-            try:
-                embedding_service = EmbeddingService(settings)
-                await embedding_service.compute_embedding_for_item(session, item)
-            except Exception:
-                # Don't fail approval if embedding computation fails
-                # This ensures the core functionality works even if embeddings are unavailable
-                pass
+            if settings.embeddings_async:
+                # Async embedding via job system
+                try:
+                    from api.v1.core.registries import vectorizer_registry
+                    from api.v1.infra.jobs.schemas import JobCreate
+                    from api.v1.infra.jobs.service import JobService
+
+                    job_service = JobService(settings)
+                    vectorizer = vectorizer_registry.get(settings.embeddings.value)
+
+                    # Generate dedupe key for idempotent job processing
+                    dedupe_key = job_service.generate_dedupe_key(
+                        "compute_item_embedding",
+                        item_id=str(item.id),
+                        model_version=vectorizer.get_model_version(),
+                    )
+
+                    job_create = JobCreate(
+                        type="compute_item_embedding",
+                        payload={
+                            "item_id": str(item.id),
+                            "model_version": vectorizer.get_model_version(),
+                            "force_recompute": False,
+                        },
+                        priority=3,  # Higher priority for item approvals
+                        dedupe_key=dedupe_key,
+                    )
+
+                    await job_service.enqueue_job(session, job_create, principal)
+
+                except Exception:
+                    # Don't fail approval if job enqueueing fails
+                    # This ensures the core functionality works even if jobs are unavailable
+                    pass
+            else:
+                # Sync embedding (legacy mode)
+                try:
+                    embedding_service = EmbeddingService(settings)
+                    await embedding_service.compute_embedding_for_item(session, item)
+                except Exception:
+                    # Don't fail approval if embedding computation fails
+                    # This ensures the core functionality works even if embeddings are unavailable
+                    pass
 
         except Exception as e:
             failed_ids.append(item_id)

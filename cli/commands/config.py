@@ -169,27 +169,33 @@ def setup_dev_mode(
         # Set the dev mode headers
         config.set("api.headers.X-User-ID", user_id)
         config.set("api.headers.X-Org-ID", org_id)
-        
-        print_success(f"Dev mode configured:")
+
+        print_success("Dev mode configured:")
         console.print(f"  User ID: [cyan]{user_id}[/cyan]")
         console.print(f"  Org ID: [cyan]{org_id}[/cyan]")
-        
-        console.print("\n💡 [dim]These headers will be used for all API requests.[/dim]")
-        console.print("💡 [dim]Make sure your server is running with AUTH_MODE=dev.[/dim]")
-        
+
+        console.print(
+            "\n💡 [dim]These headers will be used for all API requests.[/dim]"
+        )
+        console.print(
+            "💡 [dim]Make sure your server is running with AUTH_MODE=dev.[/dim]"
+        )
+
         # Test the connection
         console.print("\n🔍 [dim]Testing connection...[/dim]")
         from ..client.endpoints import LearningOSClient
-        
+
         try:
             with LearningOSClient() as client:
                 health = client.health_check()
                 print_success("✅ Connection test successful!")
-                console.print(f"API Version: [yellow]{health.get('version', 'unknown')}[/yellow]")
+                console.print(
+                    f"API Version: [yellow]{health.get('version', 'unknown')}[/yellow]"
+                )
         except Exception as e:
             console.print(f"⚠️  [yellow]Connection test failed: {e}[/yellow]")
             console.print("This may be normal if your server isn't running yet.")
-            
+
     except Exception as e:
         print_error(f"Failed to configure dev mode: {e}")
         raise typer.Exit(1) from None
@@ -201,12 +207,12 @@ def clear_headers():
     if not Confirm.ask("Clear all authentication headers?"):
         console.print("Operation cancelled.")
         return
-        
+
     try:
         config.set("api.headers", {})
         print_success("All authentication headers cleared")
         console.print("💡 [dim]CLI will now work in AUTH_MODE=none only.[/dim]")
-        
+
     except Exception as e:
         print_error(f"Failed to clear headers: {e}")
         raise typer.Exit(1) from None

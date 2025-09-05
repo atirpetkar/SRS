@@ -2,27 +2,25 @@
 
 from typing import Any
 
-from .base import APIClient
 from ..utils.config_manager import config
+from .base import APIClient
 
 
 class LearningOSClient:
     """High-level client with typed endpoint methods"""
 
     def __init__(
-        self, 
-        base_url: str | None = None,
-        headers: dict[str, str] | None = None
+        self, base_url: str | None = None, headers: dict[str, str] | None = None
     ):
         # Use config values if not provided
         api_config = config.load_config().get("api", {})
         final_base_url = base_url or api_config.get("base_url", "http://localhost:8000")
         final_headers = headers or api_config.get("headers", {})
-        
+
         self.api = APIClient(
             base_url=final_base_url,
             timeout=api_config.get("timeout", 30),
-            headers=final_headers
+            headers=final_headers,
         )
 
     def __enter__(self):

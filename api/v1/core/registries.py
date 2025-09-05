@@ -203,6 +203,37 @@ class VectorizerRegistry(Registry[Vectorizer]):
         super().__init__("Vectorizer")
 
 
+# Job Registry - background processing handlers
+class JobHandler(Protocol):
+    """Protocol for job handlers that process background tasks."""
+
+    async def handle(
+        self,
+        session: Any,  # AsyncSession
+        principal_ctx: Any,  # Principal context for org/user isolation
+        payload: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """
+        Handle a background job.
+
+        Args:
+            session: Database session for job processing
+            principal_ctx: Principal context with org_id/user_id for isolation
+            payload: Job-specific parameters
+
+        Returns:
+            Optional result dictionary to store with completed job
+        """
+        ...
+
+
+class JobRegistry(Registry[JobHandler]):
+    """Registry for background job handlers."""
+
+    def __init__(self):
+        super().__init__("Job")
+
+
 # Global registry instances (singletons)
 item_type_registry = ItemTypeRegistry()
 grader_registry = GraderRegistry()
@@ -210,3 +241,4 @@ scheduler_registry = SchedulerRegistry()
 importer_registry = ImporterRegistry()
 generator_registry = GeneratorRegistry()
 vectorizer_registry = VectorizerRegistry()
+job_registry = JobRegistry()
